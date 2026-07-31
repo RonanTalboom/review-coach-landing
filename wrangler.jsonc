@@ -1,0 +1,9 @@
+{
+  // Static-only deploy -> Cloudflare Workers Static Assets (not Pages).
+  // `wrangler deploy` uploads ./public as the asset bundle.
+  "name": "review-coach-landing",
+  "compatibility_date": "2026-07-31",
+  "assets": {
+    "directory": "./public"
+  }
+}
