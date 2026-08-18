@@ -6,6 +6,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Review Coach — a coach for the reviewer</title>
 <script src="./ds-base.js"></script>
+<link rel="stylesheet" href="./vendor/lenis.css" />
+<script>
+/* Arm the motion layer before first paint, so the hero's opening reveal never
+   flashes its finished state first. Two ways out, both of which land on the
+   plain, finished page: the visitor asked for reduced motion, or the motion
+   scripts failed to arrive within 3s. */
+(() => {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const de = document.documentElement;
+  de.setAttribute('data-motion', 'on');
+  setTimeout(() => { if (!window.__motionReady) de.removeAttribute('data-motion'); }, 3000);
+})();
+</script>
+
 <style>
 /* Template scaffolding — page layout and web-scale sizing only; every color,
    font, radius and shadow comes from ../../styles.css. The voice is the
@@ -342,6 +356,59 @@ body[data-baselines]::after {
       color-mix(in srgb, var(--color-accent) 16%, transparent) var(--half) calc(var(--half) + 1px),
       transparent calc(var(--half) + 1px) var(--leading));
 }
+
+/* ——— MOTION LAYER (see motion.js for the motion laws) —————————————
+   Only opacity/transform are touched, so nothing here can move the 24px
+   lattice. Every rule is scoped to [data-motion="on"], which the head script
+   sets only when the visitor has NOT asked for reduced motion — and clears
+   again if the motion scripts fail to arrive, so the page can never be left
+   holding its content invisible behind a script that never loaded. */
+html.lenis, html.lenis body { height: auto; }
+html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eases
+   against Lenis's virtual scroll — one easing or the other, never both */
+
+[data-motion="on"] .hero .display .line,
+[data-motion="on"] .hero .sub,
+[data-motion="on"] .hero .row > *,
+[data-motion="on"] .kicker,
+[data-motion="on"] .cells > *,
+[data-motion="on"] .plate,
+[data-motion="on"] .split-title,
+[data-motion="on"] .split-copy .note,
+[data-motion="on"] .split-figure,
+[data-motion="on"] .quote blockquote,
+[data-motion="on"] .quote figcaption,
+[data-motion="on"] .close h3,
+[data-motion="on"] .close .sub,
+[data-motion="on"] .close .row,
+[data-motion="on"] .corner { visibility: hidden; opacity: 0; }
+
+[data-motion="on"] .caption-rule { transform: scaleX(0); transform-origin: left center; }
+[data-motion="on"] .btn { will-change: transform; }
+
+/* the read's own progress, drawn as this system draws everything: a 1px rule */
+.scroll-rail { position: fixed; inset: 0 0 auto 0; height: 1px; z-index: 50;
+  background: var(--color-accent); transform: scaleX(0); transform-origin: left center;
+  pointer-events: none; }
+
+/* the Vanta lattice sits UNDER the hero's text on a transparent ground, and
+   signs the same contract the registration crosses do — decorative marks
+   never eat a control's pointer events (a live canvas over the hero would
+   swallow both call-to-action clicks) */
+.hero { position: relative; }
+.hero > *:not(.vanta-host) { position: relative; z-index: 1; }
+.vanta-host { position: absolute; inset: calc(-1 * var(--leading)) calc(-1 * var(--edge));
+  z-index: 0; pointer-events: none; opacity: 0.26;
+  overflow: hidden;  /* the WebGL canvas sizes itself and would otherwise spill
+     its lattice down over the spec plate — the effect is hero furniture, and
+     it stops at the hero's edge */
+  /* the lattice is held to the upper right, off the display's counters and
+     clear of the sub-copy's measure: the page's one job here is to be read */
+  -webkit-mask-image: radial-gradient(85% 75% at 88% 26%, #000 0%, #000 28%, transparent 72%);
+  mask-image: radial-gradient(85% 75% at 88% 26%, #000 0%, #000 28%, transparent 72%);
+}
+@media (max-width: 880px) { .vanta-host { opacity: 0.16; } } /* below this width the
+   display wraps into the lattice's quadrant — hold it to a ghost */
 </style>
 </head>
 <body>
@@ -447,6 +514,12 @@ body[data-baselines]::after {
 
   <footer>Review Coach · review.consensuslabs — built with Tauri 2, Rust and React. Coaching by Claude or a local model.</footer>
 </div>
+<script src="./vendor/gsap.min.js"></script>
+<script src="./vendor/ScrollTrigger.min.js"></script>
+<script src="./vendor/lenis.min.js"></script>
+<script src="./vendor/three.min.js"></script>
+<script src="./vendor/vanta.net.min.js"></script>
+<script src="./motion.js"></script>
 <script src="image-slot.js"></script>
 <script>
 // Review aid: baseline-grid overlay — add ?baselines to the URL, or press B to toggle.

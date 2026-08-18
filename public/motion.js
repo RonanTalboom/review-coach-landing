@@ -1,0 +1,291 @@
+/* Motion layer — Lenis (smooth scroll), GSAP + ScrollTrigger (reveals), a
+   hand-ported pair of react-bits effects (decrypt-text, magnet), and a
+   contained Vanta NET lattice behind the hero.
+
+   THE MOTION LAWS (this page's, not a library's):
+   #1 opacity and transform ONLY. The page is built on a 24px leading unit
+      with `text-box: trim-both`; anything touching height, margin or
+      font-size destroys the rhythm the stylesheet's own comments obsess over.
+   #2 prefers-reduced-motion is a hard stop, not a slowdown: Lenis never
+      initialises, every tween resolves to its final state, Vanta never starts.
+   #3 decorative layers carry pointer-events: none — the same contract the
+      registration crosses already sign so they don't eat image-slot's drops.
+   #4 one color. Everything drawn here takes --color-accent / --color-divider.
+   #5 the vocabulary is the system's own: lines get DRAWN (scaleX from the
+      left), registration crosses REGISTER (fade + scale to their mark),
+      the spec sheet PLOTS row by row. No slide-and-fade generics. */
+(() => {
+  'use strict';
+
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const coarse = matchMedia('(pointer: coarse)').matches;
+  const $ = (s, r = document) => Array.from((r || document).querySelectorAll(s));
+
+  /* law #2: paint the finished page and leave. Every animated property below
+     is declared in the stylesheet at its final value, so "do nothing" IS the
+     final state — the only work is un-arming the pre-set classes. */
+  if (reduced) {
+    document.documentElement.removeAttribute('data-motion');
+    window.__motionReady = true;
+    return;
+  }
+  document.documentElement.setAttribute('data-motion', 'on');
+
+  const gsap = window.gsap;
+  const ScrollTrigger = window.ScrollTrigger;
+  /* no GSAP means no reveals, so the pre-hidden states must come back off or
+     the page is left blank — the head script's 3s failsafe covers the case
+     where this file itself never arrives; this covers the case where it did
+     but its dependencies did not */
+  if (!gsap || !ScrollTrigger) {
+    document.documentElement.removeAttribute('data-motion');
+    return;
+  }
+  window.__motionReady = true;   /* stand the head script's failsafe down */
+  gsap.registerPlugin(ScrollTrigger);
+
+  /* ——— smooth scroll (Lenis) ———————————————————————————————————
+     Three wirings, all mandatory:
+     a) the page's own `html { scroll-behavior: smooth }` double-eases against
+        Lenis's virtual scroll — the .lenis class in the page style turns it off;
+     b) ScrollTrigger has no idea Lenis exists until it is told to update on
+        every virtual scroll frame;
+     c) two rAF loops drift against each other, so Lenis rides gsap.ticker. */
+  let lenis = null;
+  if (window.Lenis) {
+    lenis = new window.Lenis({
+      duration: 1.05,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+      touchMultiplier: 1.6,
+    });
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add((time) => lenis.raf(time * 1000));
+    gsap.ticker.lagSmoothing(0);
+
+    /* the nav's in-page anchors bypass the virtual scroll entirely and jump */
+    $('a[href^="#"]').forEach((a) => {
+      a.addEventListener('click', (e) => {
+        const target = document.querySelector(a.getAttribute('href'));
+        if (!target) return;
+        e.preventDefault();
+        lenis.scrollTo(target, { offset: -24, duration: 1.2 });
+        history.pushState(null, '', a.getAttribute('href'));
+      });
+    });
+  }
+
+  /* ——— the scroll rail ————————————————————————————————————————
+     A 1px accent hairline across the top edge, drawn left-to-right with the
+     read. The page's grammar is a caption rule; this is the page's own. */
+  const rail = document.createElement('div');
+  rail.className = 'scroll-rail';
+  rail.setAttribute('aria-hidden', 'true');
+  document.body.appendChild(rail);
+  gsap.to(rail, {
+    scaleX: 1, ease: 'none',
+    scrollTrigger: { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: 0.3 },
+  });
+
+  /* ——— shared reveal helpers ——————————————————————————————————— */
+  const enter = (trigger) => ({ trigger, start: 'top 85%', once: true });
+
+  /* rules DRAW from their left edge — the system's caption-rule grammar */
+  $('.caption-rule').forEach((rule) => {
+    gsap.fromTo(rule, { scaleX: 0 }, {
+      scaleX: 1, duration: 0.7, ease: 'power2.out', scrollTrigger: enter(rule),
+    });
+  });
+
+  /* kickers seat in with their rule */
+  $('.kicker').forEach((k) => {
+    gsap.fromTo(k, { autoAlpha: 0, y: 6 }, {
+      autoAlpha: 1, y: 0, duration: 0.5, ease: 'power2.out', scrollTrigger: enter(k),
+    });
+  });
+
+  /* registration crosses REGISTER: they scale down onto their mark, the way a
+     print register is pulled into alignment. Corner order is tl, tr, bl, br —
+     stagger walks the frame rather than fading it as a block. */
+  $('.plate, .cell-frame, .split-figure').forEach((frame) => {
+    const corners = frame.querySelectorAll(':scope > .corner');
+    if (!corners.length) return;
+    gsap.fromTo(corners, { autoAlpha: 0, scale: 2.2 }, {
+      autoAlpha: 1, scale: 1, duration: 0.55, ease: 'back.out(2)',
+      stagger: 0.06, scrollTrigger: enter(frame),
+    });
+  });
+
+  /* the wireframe cells: the frame arrives, then its contents */
+  $('.cells').forEach((cells) => {
+    gsap.fromTo(cells.children, { autoAlpha: 0, y: 18 }, {
+      autoAlpha: 1, y: 0, duration: 0.6, ease: 'power2.out',
+      stagger: 0.1, scrollTrigger: enter(cells),
+    });
+  });
+
+  /* the sheet PLOTS: title block, then one row at a time, then the note.
+     No count-up on the values — they read "≤ 7", "0", "0", "2"; counting up
+     to zero is theatre with nothing to show. */
+  const plate = document.querySelector('.plate');
+  if (plate) {
+    const rows = plate.querySelectorAll('.spec tbody tr');
+    gsap.timeline({ scrollTrigger: enter(plate) })
+      .fromTo(plate, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.4, ease: 'none' })
+      .fromTo(plate.querySelector('.title-block'), { autoAlpha: 0, y: -8 },
+        { autoAlpha: 1, y: 0, duration: 0.45, ease: 'power2.out' }, 0.1)
+      .fromTo(rows, { autoAlpha: 0, x: -10 },
+        { autoAlpha: 1, x: 0, duration: 0.45, ease: 'power2.out', stagger: 0.09 }, 0.25)
+      .fromTo(plate.querySelector('.sheet-note'), { autoAlpha: 0 },
+        { autoAlpha: 1, duration: 0.4 }, '>-0.15');
+  }
+
+  /* the split: copy from the left, the framed photograph holds a slow
+     transform-only parallax (never a background-position — see law #1) */
+  const split = document.querySelector('.split');
+  if (split) {
+    gsap.fromTo(split.querySelector('.split-title'), { autoAlpha: 0, y: 14 }, {
+      autoAlpha: 1, y: 0, duration: 0.6, ease: 'power2.out', scrollTrigger: enter(split),
+    });
+    gsap.fromTo(split.querySelector('.split-copy .note'), { autoAlpha: 0, y: 14 }, {
+      autoAlpha: 1, y: 0, duration: 0.6, delay: 0.1, ease: 'power2.out', scrollTrigger: enter(split),
+    });
+    const fig = split.querySelector('.split-figure');
+    if (fig) {
+      gsap.fromTo(fig, { autoAlpha: 0, scale: 0.97 }, {
+        autoAlpha: 1, scale: 1, duration: 0.8, ease: 'power2.out', scrollTrigger: enter(fig),
+      });
+      gsap.fromTo(fig, { y: 26 }, {
+        y: -26, ease: 'none',
+        scrollTrigger: { trigger: fig, start: 'top bottom', end: 'bottom top', scrub: 0.6 },
+      });
+    }
+  }
+
+  /* the quote and the close */
+  const quote = document.querySelector('.quote blockquote');
+  if (quote) {
+    gsap.fromTo([quote, document.querySelector('.quote figcaption')],
+      { autoAlpha: 0, y: 16 },
+      { autoAlpha: 1, y: 0, duration: 0.7, ease: 'power2.out', stagger: 0.12,
+        scrollTrigger: enter(document.querySelector('.quote')) });
+  }
+  const close = document.querySelector('.close');
+  if (close) {
+    gsap.fromTo(close.querySelectorAll('h3, .sub, .row'), { autoAlpha: 0, y: 14 }, {
+      autoAlpha: 1, y: 0, duration: 0.55, ease: 'power2.out', stagger: 0.1, scrollTrigger: enter(close),
+    });
+  }
+
+  /* ——— react-bits, hand-ported ————————————————————————————————
+     react-bits ships React components (Tailwind + framer-motion) and this
+     repo has no package.json and no build step by design, so the two effects
+     worth having are re-derived here in ~30 lines of vanilla each:
+     "Decrypted Text" and "Magnet". */
+
+  /* DECRYPT: the hero's display lines resolve out of a glyph cipher, one
+     character at a time, left to right. The h1 takes an aria-label first so
+     assistive tech reads the sentence, never the cipher; the element's height
+     is pinned for the duration so a mid-scramble rewrap can never nudge the
+     24px rhythm (law #1 applies to the side effects too, not just the tweens). */
+  const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\|<>[]{}=+*-#%';
+  function decrypt(el, delay) {
+    const final = el.textContent;
+    const chars = final.split('');
+    let frame = 0;
+    const speed = 1.6;            /* characters resolved per frame */
+    const total = chars.length / speed + 12;
+    const tick = () => {
+      const settled = Math.floor(frame * speed);
+      el.textContent = chars.map((c, i) => {
+        if (i < settled || c === ' ') return c;
+        return GLYPHS[(Math.floor(frame * 7 + i * 13) % GLYPHS.length)];
+      }).join('');
+      if (frame++ < total) requestAnimationFrame(tick);
+      else el.textContent = final;
+    };
+    setTimeout(() => requestAnimationFrame(tick), delay);
+  }
+
+  const display = document.querySelector('.hero .display');
+  if (display) {
+    const lines = $('.line', display);
+    display.setAttribute('aria-label', display.textContent.replace(/\s+/g, ' ').trim());
+    lines.forEach((l) => l.setAttribute('aria-hidden', 'true'));
+    /* pin the block against a mid-cipher rewrap, release when it resolves */
+    const lock = () => { display.style.minHeight = display.getBoundingClientRect().height + 'px'; };
+    lock();
+    addEventListener('resize', () => { display.style.minHeight = ''; lock(); });
+
+    gsap.timeline({ delay: 0.15 })
+      .fromTo(lines, { autoAlpha: 0, y: 12 },
+        { autoAlpha: 1, y: 0, duration: 0.6, ease: 'power2.out', stagger: 0.12 })
+      .fromTo('.hero .sub', { autoAlpha: 0, y: 12 },
+        { autoAlpha: 1, y: 0, duration: 0.6, ease: 'power2.out' }, 0.35)
+      .fromTo('.hero .row > *', { autoAlpha: 0, y: 12 },
+        { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power2.out', stagger: 0.08 }, 0.5);
+
+    lines.forEach((l, i) => decrypt(l, 150 + i * 120));
+  }
+
+  /* MAGNET: the solid accent action is the one solid object on the board, so
+     it is the one that answers the cursor. Capped at 5px — a nudge, not a
+     drift — and off entirely for coarse pointers, which have no hover to read. */
+  if (!coarse) {
+    $('.btn').forEach((btn) => {
+      const pull = 5, radius = 90;
+      const to = gsap.quickTo(btn, 'x', { duration: 0.4, ease: 'power3.out' });
+      const toY = gsap.quickTo(btn, 'y', { duration: 0.4, ease: 'power3.out' });
+      btn.addEventListener('pointermove', (e) => {
+        const r = btn.getBoundingClientRect();
+        const dx = e.clientX - (r.left + r.width / 2);
+        const dy = e.clientY - (r.top + r.height / 2);
+        to(gsap.utils.clamp(-pull, pull, (dx / radius) * pull * 2));
+        toY(gsap.utils.clamp(-pull, pull, (dy / radius) * pull * 2));
+      });
+      btn.addEventListener('pointerleave', () => { to(0); toY(0); });
+    });
+  }
+
+  /* ——— Vanta NET, contained ————————————————————————————————————
+     Vanta's catalog is mostly weather (fog, clouds, waves) and none of it
+     belongs on an engineering document. NET is the exception: a wireframe
+     lattice of points and hairlines, which is this system's own grammar —
+     visible drawn structure — rendered in the single steel accent at low
+     alpha behind the hero, on a transparent ground so the paper stays paper.
+     The instance is torn down whenever the hero leaves the viewport: a
+     three.js rAF running forever behind a scrolled-past marketing hero is
+     pure battery for nothing. */
+  const hero = document.querySelector('.hero');
+  if (hero && window.VANTA && window.VANTA.NET && window.THREE) {
+    const host = document.createElement('div');
+    host.className = 'vanta-host';
+    host.setAttribute('aria-hidden', 'true');   /* law #3: decorative, and
+       pointer-events: none in the stylesheet — a live canvas over the hero
+       would swallow both call-to-action clicks */
+    hero.prepend(host);
+
+    let effect = null;
+    const start = () => {
+      if (effect) return;
+      effect = window.VANTA.NET({
+        el: host,
+        THREE: window.THREE,
+        mouseControls: true, touchControls: false, gyroControls: false,
+        minHeight: 200, minWidth: 200,
+        scale: 1, scaleMobile: 1,
+        color: 0x5980a6,          /* --color-accent, the single hue */
+        backgroundAlpha: 0,       /* the paper ground shows through */
+        points: 6, maxDistance: 19, spacing: 22,   /* sparse: a lattice, not a mesh */
+        showDots: true,
+      });
+    };
+    const stop = () => { if (effect) { effect.destroy(); effect = null; } };
+
+    new IntersectionObserver(([e]) => (e.isIntersecting ? start() : stop()), { threshold: 0 })
+      .observe(hero);
+    addEventListener('pagehide', stop);
+  }
+
+  ScrollTrigger.refresh();
+})();
