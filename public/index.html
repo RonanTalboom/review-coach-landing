@@ -458,6 +458,42 @@ html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eas
 .pen-frame rect { fill: none; stroke: var(--color-divider); stroke-width: 1;
   x: 0.5px; y: 0.5px; width: calc(100% - 1px); height: calc(100% - 1px);
   vector-effect: non-scaling-stroke; }
+
+/* — the drafting cursor: two hairlines and a coordinate readout that track the
+   pointer across the whole page, the way a drawing board's rule does. Fine
+   pointers only — a touch device has no cursor to register, and the lines
+   would just be two stripes stuck where the last tap landed.
+
+   The readout is the reason this needs care: it changes its own text on every
+   frame, so it takes tabular figures AND a fixed ch width. Proportional
+   figures would let "1" and "8" resize the box sixty times a second, and a
+   box that resizes under a transform is a repaint storm and a visibly
+   twitching label. Fixed-position, pointer-events: none, out of flow — it
+   cannot reach the page's lattice. — */
+.crosshair { position: fixed; inset: 0; z-index: 30; pointer-events: none;
+  opacity: 0; transition: opacity 0.4s ease; }
+.crosshair.on { opacity: 1; }
+.crosshair i { position: absolute; background: var(--color-accent);
+  opacity: 0.28; display: block; }
+.crosshair .h { left: 0; top: 0; width: 100%; height: 1px; will-change: transform; }
+.crosshair .v { left: 0; top: 0; width: 1px; height: 100%; will-change: transform; }
+/* the readout rides the intersection, one 24px unit clear of both rules */
+.crosshair .read { position: absolute; left: 0; top: 0; will-change: transform;
+  padding-left: var(--half); padding-top: 4px;
+  font-family: var(--font-body, inherit);
+  font-size: 11px; line-height: var(--half); letter-spacing: 0.12em;
+  text-transform: uppercase; font-weight: 600;
+  font-feature-settings: "tnum" 1; font-variant-numeric: tabular-nums;
+  width: 22ch;  /* pinned: the text is rewritten every frame and must not
+     resize its own box while doing it */
+  color: var(--color-accent-700); white-space: nowrap; }
+/* the edge ticks — where the rules meet the page edge, the drawing marks it */
+.crosshair .tick { position: absolute; background: var(--color-accent); opacity: 0.55; }
+.crosshair .tick.tx { top: 0; width: 1px; height: 7px; will-change: transform; }
+.crosshair .tick.bx { bottom: 0; width: 1px; height: 7px; will-change: transform; }
+.crosshair .tick.ly { left: 0; height: 1px; width: 7px; will-change: transform; }
+.crosshair .tick.ry { right: 0; height: 1px; width: 7px; will-change: transform; }
+@media (pointer: coarse) { .crosshair { display: none; } }
 </style>
 </head>
 <body>

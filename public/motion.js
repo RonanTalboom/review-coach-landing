@@ -235,6 +235,64 @@
     });
   }
 
+  /* ——— the drafting cursor ————————————————————————————————————
+     A full-viewport crosshair with a live coordinate readout, ticked at the
+     page edges. This is the one effect in here that only makes sense in THIS
+     design language: on an engineering drawing the cursor is a rule, and where
+     the rule crosses the sheet edge the drawing marks it.
+
+     Y reads in document space (clientY + scrollY), not viewport space — the
+     sheet is the thing being measured, and a coordinate that resets when you
+     scroll would be measuring the window instead. */
+  if (!coarse) {
+    const ch = document.createElement('div');
+    ch.className = 'crosshair';
+    ch.setAttribute('aria-hidden', 'true');
+    ch.innerHTML = '<i class="h"></i><i class="v"></i>' +
+      '<i class="tick tx"></i><i class="tick bx"></i><i class="tick ly"></i><i class="tick ry"></i>' +
+      '<span class="read"></span>';
+    document.body.appendChild(ch);
+
+    const h = ch.querySelector('.h'), v = ch.querySelector('.v');
+    const read = ch.querySelector('.read');
+    const tx = ch.querySelector('.tx'), bx = ch.querySelector('.bx');
+    const ly = ch.querySelector('.ly'), ry = ch.querySelector('.ry');
+    /* quickTo keeps one tween per property alive instead of allocating a new
+       one per pointer event — at pointer-event rates the difference is the
+       whole cost of the effect */
+    const set = {
+      hy: gsap.quickTo(h, 'y', { duration: 0.18, ease: 'power3.out' }),
+      vx: gsap.quickTo(v, 'x', { duration: 0.18, ease: 'power3.out' }),
+      rx: gsap.quickTo(read, 'x', { duration: 0.18, ease: 'power3.out' }),
+      ry: gsap.quickTo(read, 'y', { duration: 0.18, ease: 'power3.out' }),
+      txx: gsap.quickTo(tx, 'x', { duration: 0.18, ease: 'power3.out' }),
+      bxx: gsap.quickTo(bx, 'x', { duration: 0.18, ease: 'power3.out' }),
+      lyy: gsap.quickTo(ly, 'y', { duration: 0.18, ease: 'power3.out' }),
+      ryy: gsap.quickTo(ry, 'y', { duration: 0.18, ease: 'power3.out' }),
+    };
+    const pad = (n) => String(Math.max(0, Math.round(n))).padStart(4, '0');
+    let raf = 0, px = 0, py = 0;
+    const paint = () => {
+      raf = 0;
+      set.hy(py); set.lyy(py); set.ryy(py);
+      set.vx(px); set.txx(px); set.bxx(px);
+      set.rx(px); set.ry(py);
+      read.textContent = `X ${pad(px)}  Y ${pad(py + scrollY)}`;
+    };
+    addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'touch') return;
+      px = e.clientX; py = e.clientY;
+      ch.classList.add('on');
+      if (!raf) raf = requestAnimationFrame(paint);   /* coalesce to one paint
+         per frame — pointermove can fire faster than the display refreshes */
+    }, { passive: true });
+    addEventListener('pointerdown', () => ch.classList.add('on'), { passive: true });
+    document.addEventListener('mouseleave', () => ch.classList.remove('on'));
+    /* the Y readout is document-space, so it is stale the moment the page
+       scrolls under a still pointer */
+    if (lenis) lenis.on('scroll', () => { if (!raf && ch.classList.contains('on')) raf = requestAnimationFrame(paint); });
+  }
+
   /* ——— react-bits, hand-ported ————————————————————————————————
      react-bits ships React components (Tailwind + framer-motion) and this
      repo has no package.json and no build step by design, so the two effects
