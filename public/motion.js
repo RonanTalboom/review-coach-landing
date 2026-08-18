@@ -87,6 +87,38 @@
     scrollTrigger: { trigger: document.body, start: 'top top', end: 'bottom bottom', scrub: 0.3 },
   });
 
+  /* ——— the sheet index ————————————————————————————————————————
+     The drawing set gets a register in the right margin: one numbered tab per
+     sheet, the current one marked. Built from the sections' own data-sheet
+     attributes rather than a list kept in here, so adding a sheet to the page
+     adds its tab and nothing needs editing twice. */
+  const sheets = $('section[data-sheet]');
+  if (sheets.length) {
+    const index = document.createElement('nav');
+    index.className = 'sheet-index';
+    index.setAttribute('aria-label', 'Sheet index');
+    index.innerHTML = sheets.map((sec) =>
+      `<a href="#${sec.id}"><span>${sec.dataset.sheet}</span><span class="nm">${sec.dataset.sheetName}</span></a>`
+    ).join('');
+    document.body.appendChild(index);
+
+    const tabs = $('a', index);
+    tabs.forEach((a, i) => {
+      a.addEventListener('click', (e) => {
+        if (!lenis) return;                       /* no Lenis: let the browser do it */
+        e.preventDefault();
+        lenis.scrollTo(sheets[i], { offset: -24, duration: 1.2 });
+        history.pushState(null, '', '#' + sheets[i].id);
+      });
+      ScrollTrigger.create({
+        trigger: sheets[i], start: 'top 40%', end: 'bottom 40%',
+        onToggle: ({ isActive }) => {
+          if (isActive) tabs.forEach((t, j) => t.setAttribute('aria-current', String(i === j)));
+        },
+      });
+    });
+  }
+
   /* ——— shared reveal helpers ——————————————————————————————————— */
   const enter = (trigger) => ({ trigger, start: 'top 85%', once: true });
 

@@ -409,6 +409,35 @@ html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eas
 }
 @media (max-width: 880px) { .vanta-host { opacity: 0.16; } } /* below this width the
    display wraps into the lattice's quadrant — hold it to a ghost */
+
+/* — the sheet index: the drawing set's own tab rail, standing in the right
+   margin outside the 1200px text block. It is real navigation, so unlike the
+   registration crosses it DOES take pointer events; it is furniture, so it
+   takes the system's 55%-ink convention until a sheet is current. Motion
+   here is opacity and transform only, with one deliberate exception: the tab
+   name's max-width. The rail is position: fixed and so out of flow entirely —
+   nothing it does can reach the page's 24px lattice, which is what law #1
+   actually protects. Below 1240px the margin that holds it stops existing and
+   the rail is gone. — */
+.sheet-index { position: fixed; right: 24px; top: 50%; transform: translateY(-50%);
+  z-index: 40; display: none; flex-direction: column; gap: var(--half);
+  padding: var(--half) 0; }
+@media (min-width: 1240px) { [data-motion="on"] .sheet-index { display: flex; } }
+.sheet-index a { display: flex; align-items: center; gap: 8px;
+  font-size: 13px; line-height: var(--half); letter-spacing: 0.08em; font-weight: 600;
+  font-feature-settings: "tnum" 1; text-decoration: none;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent);
+  transition: color 0.25s ease; }
+.sheet-index a::before { content: ""; width: 14px; height: 1px; background: currentColor;
+  transform: scaleX(0.5); transform-origin: right center; transition: transform 0.25s ease; }
+.sheet-index a:hover, .sheet-index a:focus-visible { color: var(--color-accent-700); }
+.sheet-index a:hover::before, .sheet-index a:focus-visible::before { transform: scaleX(1); }
+.sheet-index a[aria-current="true"] { color: var(--color-accent-700); }
+.sheet-index a[aria-current="true"]::before { transform: scaleX(1); }
+/* the tab's name only appears on hover — the rail is a register, not a menu */
+.sheet-index .nm { max-width: 0; overflow: hidden; white-space: nowrap;
+  text-transform: uppercase; opacity: 0; transition: max-width 0.3s ease, opacity 0.25s ease; }
+.sheet-index a:hover .nm, .sheet-index a:focus-visible .nm { max-width: 18ch; opacity: 1; }
 </style>
 </head>
 <body>
@@ -430,7 +459,7 @@ html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eas
     </div>
   </section>
 
-  <section class="sheet" id="sheet" aria-label="Review Coach — operating limits">
+  <section class="sheet" id="sheet" data-sheet="01" data-sheet-name="Operating limits" aria-label="Review Coach — operating limits">
     <div class="plate">
       <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
       <header class="title-block">
@@ -457,7 +486,7 @@ html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eas
 
   <!-- the drawing set continues: sections below number themselves with the
        deck's own kicker grammar — the spec plate above is sheet 01 -->
-  <section class="features" id="coaching">
+  <section class="features" id="coaching" data-sheet="02" data-sheet-name="How it coaches">
     <span class="kicker">02 · How it coaches</span>
     <hr class="caption-rule" />
     <div class="cells">
@@ -479,7 +508,7 @@ html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eas
     </div>
   </section>
 
-  <section class="split" id="practice">
+  <section class="split" id="practice" data-sheet="03" data-sheet-name="In practice">
     <div class="split-copy">
       <span class="kicker">03 · In practice</span>
       <hr class="caption-rule" />
@@ -501,7 +530,7 @@ html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eas
     </figure>
   </section>
 
-  <section class="close" id="run">
+  <section class="close" id="run" data-sheet="04" data-sheet-name="Run it">
     <span class="kicker">04 · Run it</span>
     <hr class="caption-rule" />
     <h3>Run it on your next PR</h3>
