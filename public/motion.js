@@ -189,7 +189,7 @@
      is pinned for the duration so a mid-scramble rewrap can never nudge the
      24px rhythm (law #1 applies to the side effects too, not just the tweens). */
   const GLYPHS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\|<>[]{}=+*-#%';
-  function decrypt(el, delay) {
+  function decrypt(el, delay, onDone) {
     const final = el.textContent;
     const chars = final.split('');
     let frame = 0;
@@ -202,7 +202,7 @@
         return GLYPHS[(Math.floor(frame * 7 + i * 13) % GLYPHS.length)];
       }).join('');
       if (frame++ < total) requestAnimationFrame(tick);
-      else el.textContent = final;
+      else { el.textContent = final; if (onDone) onDone(); }
     };
     setTimeout(() => requestAnimationFrame(tick), delay);
   }
@@ -210,22 +210,39 @@
   const display = document.querySelector('.hero .display');
   if (display) {
     const lines = $('.line', display);
+    /* the h1 is NAMED by its aria-label, so assistive tech reads the finished
+       sentence and never the cipher. The spans stay aria-hidden permanently
+       and deliberately — un-hiding them would double the heading's name back
+       into the accessibility tree alongside the label. */
     display.setAttribute('aria-label', display.textContent.replace(/\s+/g, ' ').trim());
     lines.forEach((l) => l.setAttribute('aria-hidden', 'true'));
-    /* pin the block against a mid-cipher rewrap, release when it resolves */
-    const lock = () => { display.style.minHeight = display.getBoundingClientRect().height + 'px'; };
-    lock();
-    addEventListener('resize', () => { display.style.minHeight = ''; lock(); });
 
-    gsap.timeline({ delay: 0.15 })
-      .fromTo(lines, { autoAlpha: 0, y: 12 },
-        { autoAlpha: 1, y: 0, duration: 0.6, ease: 'power2.out', stagger: 0.12 })
-      .fromTo('.hero .sub', { autoAlpha: 0, y: 12 },
-        { autoAlpha: 1, y: 0, duration: 0.6, ease: 'power2.out' }, 0.35)
-      .fromTo('.hero .row > *', { autoAlpha: 0, y: 12 },
-        { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power2.out', stagger: 0.08 }, 0.5);
+    /* Everything below waits on document.fonts.ready, and the reason is law #1.
+       min-height is a layout write, and measuring it before Barlow Condensed
+       lands measures the fallback face: at 96px each line wraps to two, so the
+       block is pinned to roughly twice its real height and never recovers —
+       the 24px lattice moved, which is exactly what law #1 forbids. Measure
+       after the real face, and release the pin the moment the last line
+       resolves, so the lock exists only for the frames that can rewrap. */
+    document.fonts.ready.then(() => {
+      display.style.minHeight = display.getBoundingClientRect().height + 'px';
 
-    lines.forEach((l, i) => decrypt(l, 150 + i * 120));
+      gsap.timeline()
+        .fromTo(lines, { autoAlpha: 0, y: 12 },
+          { autoAlpha: 1, y: 0, duration: 0.6, ease: 'power2.out', stagger: 0.12 })
+        .fromTo('.hero .sub', { autoAlpha: 0, y: 12 },
+          { autoAlpha: 1, y: 0, duration: 0.6, ease: 'power2.out' }, 0.2)
+        .fromTo('.hero .row > *', { autoAlpha: 0, y: 12 },
+          { autoAlpha: 1, y: 0, duration: 0.5, ease: 'power2.out', stagger: 0.08 }, 0.35);
+
+      const last = lines.length - 1;
+      lines.forEach((l, i) => decrypt(l, 100 + i * 120,
+        i === last ? () => { display.style.minHeight = ''; ScrollTrigger.refresh(); } : null));
+
+      /* the triggers below were measured against the fallback face's taller
+         layout; every start: 'top 85%' is wrong until this runs */
+      ScrollTrigger.refresh();
+    });
   }
 
   /* MAGNET: the solid accent action is the one solid object on the board, so
@@ -271,7 +288,10 @@
       effect = window.VANTA.NET({
         el: host,
         THREE: window.THREE,
-        mouseControls: true, touchControls: false, gyroControls: false,
+        /* mouseControls registers a global scroll listener that reads
+           getCanvasRect() — a forced layout read on every Lenis frame, for a
+           parallax nobody sees at 0.26 opacity */
+        mouseControls: false, touchControls: false, gyroControls: false,
         minHeight: 200, minWidth: 200,
         scale: 1, scaleMobile: 1,
         color: 0x5980a6,          /* --color-accent, the single hue */
