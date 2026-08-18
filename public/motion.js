@@ -75,6 +75,65 @@
     });
   }
 
+  /* ——— the plot ————————————————————————————————————————————————
+     The sheet set draws itself before it is read: crosses set, a rule swept,
+     a plot counter run to 100. Returns a promise so the hero's own reveal can
+     wait for it, and resolves IMMEDIATELY when the sequence is skipped — once
+     per session, on any click or key, or on a reduced-motion visit (which
+     never reaches this code at all).
+
+     The failsafe is the point of the design: a full-screen overlay that
+     outlives its script makes the page unreachable, so removal is scheduled
+     unconditionally rather than as the last step of a sequence that might
+     throw halfway. */
+  const booted = (() => {
+    let already = false;
+    try { already = sessionStorage.getItem('rc-plotted') === '1'; } catch (_) { /* private mode */ }
+    if (already) return Promise.resolve();
+    try { sessionStorage.setItem('rc-plotted', '1'); } catch (_) {}
+
+    const boot = document.createElement('div');
+    boot.className = 'plot-boot';
+    boot.setAttribute('aria-hidden', 'true');
+    boot.innerHTML = `<div class="pb-frame">
+      <span class="pb-meta"><span>Review Coach — sheet set RC-01</span><span class="pb-pct">Plotting 000%</span></span>
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <i class="pb-rule"></i>
+      <span class="pb-skip">Click to skip</span>
+    </div>`;
+    document.body.appendChild(boot);
+    if (lenis) lenis.stop();   /* nothing scrolls under a sheet still on the plotter */
+
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        boot.remove();
+        if (lenis) lenis.start();
+        removeEventListener('keydown', finish);
+        removeEventListener('pointerdown', finish);
+        resolve();
+      };
+      /* unconditional: the page comes back whether or not the plot finished */
+      setTimeout(finish, 4000);
+      addEventListener('keydown', finish);
+      addEventListener('pointerdown', finish);
+
+      const pct = boot.querySelector('.pb-pct');
+      const counter = { n: 0 };
+      gsap.timeline({ onComplete: finish })
+        .fromTo(boot.querySelectorAll('.corner'), { autoAlpha: 0, scale: 2.4 },
+          { autoAlpha: 1, scale: 1, duration: 0.4, ease: 'back.out(2)', stagger: 0.05 })
+        .fromTo(boot.querySelector('.pb-meta'), { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3 }, 0.15)
+        .to(boot.querySelector('.pb-rule'), { scaleX: 1, duration: 0.9, ease: 'power1.inOut' }, 0.3)
+        .to(counter, { n: 100, duration: 0.9, ease: 'power1.inOut',
+          onUpdate: () => { pct.textContent = 'Plotting ' + String(Math.round(counter.n)).padStart(3, '0') + '%'; } }, 0.3)
+        .to(boot.querySelector('.pb-skip'), { autoAlpha: 1, duration: 0.3 }, 0.5)
+        .to(boot, { autoAlpha: 0, duration: 0.45, ease: 'power2.in' }, '>0.12');
+    });
+  })();
+
   /* ——— the scroll rail ————————————————————————————————————————
      A 1px accent hairline across the top edge, drawn left-to-right with the
      read. The page's grammar is a caption rule; this is the page's own. */
@@ -340,7 +399,7 @@
        the 24px lattice moved, which is exactly what law #1 forbids. Measure
        after the real face, and release the pin the moment the last line
        resolves, so the lock exists only for the frames that can rewrap. */
-    document.fonts.ready.then(() => {
+    Promise.all([document.fonts.ready, booted]).then(() => {
       display.style.minHeight = display.getBoundingClientRect().height + 'px';
 
       gsap.timeline()

@@ -494,6 +494,38 @@ html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eas
 .crosshair .tick.ly { left: 0; height: 1px; width: 7px; will-change: transform; }
 .crosshair .tick.ry { right: 0; height: 1px; width: 7px; will-change: transform; }
 @media (pointer: coarse) { .crosshair { display: none; } }
+
+/* — the plot: before the sheet set is readable, it is drawn. A paper-colored
+   plate over the viewport, its four registration crosses set, a rule swept
+   down the page and a plot counter running to 100. Roughly 1.7s, once per
+   session, and abandoned on any click or key.
+
+   An overlay that outlives its script makes the page unreachable, so it is
+   armed with the same unconditional timer the head script uses: the element
+   is removed after 4s whether or not the sequence ever finished. — */
+.plot-boot { position: fixed; inset: 0; z-index: 100; background: var(--color-bg);
+  display: grid; place-items: center; }
+.plot-boot .pb-frame { position: relative; width: min(560px, 74vw); height: 1px; }
+.plot-boot .corner { position: absolute; width: 15px; height: 15px;
+  color: color-mix(in srgb, var(--color-text) 55%, transparent); }
+.plot-boot .corner::before { content: ""; position: absolute; left: 7px; top: 0; width: 1px; height: 100%; background: currentColor; }
+.plot-boot .corner::after { content: ""; position: absolute; top: 7px; left: 0; width: 100%; height: 1px; background: currentColor; }
+.plot-boot .corner.tl { top: -8px; left: -8px; } .plot-boot .corner.tr { top: -8px; right: -8px; }
+.plot-boot .corner.bl { bottom: -8px; left: -8px; } .plot-boot .corner.br { bottom: -8px; right: -8px; }
+.plot-boot .pb-rule { position: absolute; inset: 0; background: var(--color-accent);
+  transform: scaleX(0); transform-origin: left center; }
+.plot-boot .pb-meta { position: absolute; left: 0; right: 0; top: calc(-1 * var(--leading));
+  display: flex; justify-content: space-between; gap: var(--leading);
+  font-size: 11px; line-height: var(--half); letter-spacing: 0.12em;
+  text-transform: uppercase; font-weight: 600;
+  font-feature-settings: "tnum" 1; font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--color-text) 70%, transparent); }
+.plot-boot .pb-pct { color: var(--color-accent-700); width: 16ch; text-align: right;
+  white-space: nowrap; } /* 13ch fitted the characters but not the 0.12em
+  tracking, and the counter wrapped onto a second line mid-count */
+.plot-boot .pb-skip { position: absolute; left: 0; top: var(--leading);
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600;
+  color: color-mix(in srgb, var(--color-text) 45%, transparent); opacity: 0; }
 </style>
 </head>
 <body>
