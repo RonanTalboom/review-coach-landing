@@ -139,21 +139,46 @@
   /* registration crosses REGISTER: they scale down onto their mark, the way a
      print register is pulled into alignment. Corner order is tl, tr, bl, br —
      stagger walks the frame rather than fading it as a block. */
+  /* PLOT: an SVG rect laid over the frame, drawn by running its dash offset to
+     zero. pathLength="100" normalises the dash maths to percentages, so the
+     same tween is correct at every size and survives a resize without being
+     re-measured — the alternative, measuring the real perimeter, is a layout
+     read that goes stale the moment the column reflows. */
+  function penFrame(el) {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('class', 'pen-frame');
+    svg.setAttribute('aria-hidden', 'true');
+    const rect = document.createElementNS(ns, 'rect');
+    rect.setAttribute('pathLength', '100');
+    svg.appendChild(rect);
+    el.appendChild(svg);
+    return rect;
+  }
+
+  /* the crosses register first, then the pen draws the box between them */
   $('.plate, .cell-frame, .split-figure').forEach((frame) => {
     const corners = frame.querySelectorAll(':scope > .corner');
-    if (!corners.length) return;
-    gsap.fromTo(corners, { autoAlpha: 0, scale: 2.2 }, {
-      autoAlpha: 1, scale: 1, duration: 0.55, ease: 'back.out(2)',
-      stagger: 0.06, scrollTrigger: enter(frame),
-    });
+    const tl = gsap.timeline({ scrollTrigger: enter(frame) });
+    if (corners.length) {
+      tl.fromTo(corners, { autoAlpha: 0, scale: 2.2 },
+        { autoAlpha: 1, scale: 1, duration: 0.55, ease: 'back.out(2)', stagger: 0.06 }, 0);
+    }
+    if (frame.matches('.plate, .cell-frame')) {
+      tl.fromTo(penFrame(frame), { strokeDasharray: 100, strokeDashoffset: 100 },
+        { strokeDashoffset: 0, duration: 1.1, ease: 'power1.inOut' }, 0.18);
+    }
   });
 
   /* the wireframe cells: the frame arrives, then its contents */
+  /* the cells' CONTENTS arrive, not the cells: fading the whole .cell-frame
+     would fade the pen stroke drawing it, so the box and what it holds are
+     animated separately */
   $('.cells').forEach((cells) => {
-    gsap.fromTo(cells.children, { autoAlpha: 0, y: 18 }, {
-      autoAlpha: 1, y: 0, duration: 0.6, ease: 'power2.out',
-      stagger: 0.1, scrollTrigger: enter(cells),
-    });
+    gsap.fromTo(cells.querySelectorAll('.cell-frame > h2, .cell-frame > p'),
+      { autoAlpha: 0, y: 14 },
+      { autoAlpha: 1, y: 0, duration: 0.55, ease: 'power2.out',
+        stagger: 0.08, delay: 0.3, scrollTrigger: enter(cells) });
   });
 
   /* the sheet PLOTS: title block, then one row at a time, then the note.
@@ -162,12 +187,13 @@
   const plate = document.querySelector('.plate');
   if (plate) {
     const rows = plate.querySelectorAll('.spec tbody tr');
+    /* the plate itself is never faded — it carries the pen stroke drawing its
+       own frame; its contents plot inside it instead */
     gsap.timeline({ scrollTrigger: enter(plate) })
-      .fromTo(plate, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.4, ease: 'none' })
       .fromTo(plate.querySelector('.title-block'), { autoAlpha: 0, y: -8 },
-        { autoAlpha: 1, y: 0, duration: 0.45, ease: 'power2.out' }, 0.1)
+        { autoAlpha: 1, y: 0, duration: 0.45, ease: 'power2.out' }, 0.35)
       .fromTo(rows, { autoAlpha: 0, x: -10 },
-        { autoAlpha: 1, x: 0, duration: 0.45, ease: 'power2.out', stagger: 0.09 }, 0.25)
+        { autoAlpha: 1, x: 0, duration: 0.45, ease: 'power2.out', stagger: 0.09 }, 0.5)
       .fromTo(plate.querySelector('.sheet-note'), { autoAlpha: 0 },
         { autoAlpha: 1, duration: 0.4 }, '>-0.15');
   }

@@ -371,8 +371,8 @@ html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eas
 [data-motion="on"] .hero .sub,
 [data-motion="on"] .hero .row > *,
 [data-motion="on"] .kicker,
-[data-motion="on"] .cells > *,
-[data-motion="on"] .plate,
+[data-motion="on"] .cell-frame > h2,
+[data-motion="on"] .cell-frame > p,
 [data-motion="on"] .split-title,
 [data-motion="on"] .split-copy .note,
 [data-motion="on"] .split-figure,
@@ -438,6 +438,26 @@ html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eas
 .sheet-index .nm { max-width: 0; overflow: hidden; white-space: nowrap;
   text-transform: uppercase; opacity: 0; transition: max-width 0.3s ease, opacity 0.25s ease; }
 .sheet-index a:hover .nm, .sheet-index a:focus-visible .nm { max-width: 18ch; opacity: 1; }
+
+/* — plotted frames: with motion on, the 1px frames on the spec plate and the
+   wireframe cells are not painted by the border but DRAWN by an SVG rect whose
+   dash offset runs to zero — a pen crossing the page. The CSS border keeps its
+   1px WIDTH and only loses its color: zeroing the border instead would shrink
+   every box by 2px per axis and shift the whole column, which is precisely the
+   layout write the oracle exists to catch. The overlay is inset -1px so it
+   covers the border box (an absolutely positioned child is otherwise laid out
+   against the padding box, and the stroke would land 1px inside the frame). — */
+[data-motion="on"] .plate, [data-motion="on"] .cell-frame { border-color: transparent; }
+.pen-frame { position: absolute; top: -1px; left: -1px;
+  /* an <svg> is a REPLACED element, so `inset: -1px` alone leaves it at its
+     300x150 intrinsic size instead of stretching it — the frame draws short.
+     100% here resolves against the padding box, which is the border box less
+     the 1px border on each side, so +2px is exactly the border box. */
+  width: calc(100% + 2px); height: calc(100% + 2px);
+  overflow: visible; pointer-events: none; }
+.pen-frame rect { fill: none; stroke: var(--color-divider); stroke-width: 1;
+  x: 0.5px; y: 0.5px; width: calc(100% - 1px); height: calc(100% - 1px);
+  vector-effect: non-scaling-stroke; }
 </style>
 </head>
 <body>
