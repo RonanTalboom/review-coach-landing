@@ -169,13 +169,36 @@
         lenis.scrollTo(sheets[i], { offset: -24, duration: 1.2 });
         history.pushState(null, '', '#' + sheets[i].id);
       });
-      ScrollTrigger.create({
-        trigger: sheets[i], start: 'top 40%', end: 'bottom 40%',
-        onToggle: ({ isActive }) => {
-          if (isActive) tabs.forEach((t, j) => t.setAttribute('aria-current', String(i === j)));
-        },
-      });
     });
+
+    /* Which sheet is current is decided by a live rect test against the
+       viewport midline, NOT by a ScrollTrigger per section. A pinned section
+       is position: fixed while it holds, so its document-space start/end stop
+       describing where it actually is, and a per-section trigger marks the
+       NEXT sheet current while you are still reading the pinned one — which
+       is exactly what it did. A rect is true in both states. Five rects on a
+       coalesced frame is cheaper than the triggers it replaces. */
+    let markRaf = 0, active = 0;
+    const markCurrent = () => {
+      markRaf = 0;
+      const mid = innerHeight / 2;
+      let hit = -1;
+      sheets.forEach((sec, i) => {
+        const r = sec.getBoundingClientRect();
+        if (r.top <= mid && r.bottom >= mid) hit = i;
+      });
+      /* the midline can fall in the air BETWEEN two sheets — that is not sheet
+         01, it is still whichever sheet you last read. Falling back to 0 made
+         the rail jump to the top of the set every time it crossed a gap. */
+      if (hit === -1) return;
+      active = hit;
+      tabs.forEach((t, j) => t.setAttribute('aria-current', String(j === active)));
+    };
+    const queueMark = () => { if (!markRaf) markRaf = requestAnimationFrame(markCurrent); };
+    if (lenis) lenis.on('scroll', queueMark);
+    addEventListener('scroll', queueMark, { passive: true });
+    addEventListener('resize', queueMark);
+    markCurrent();
   }
 
   /* ——— shared reveal helpers ——————————————————————————————————— */
@@ -255,6 +278,51 @@
         { autoAlpha: 1, x: 0, duration: 0.45, ease: 'power2.out', stagger: 0.09 }, 0.5)
       .fromTo(plate.querySelector('.sheet-note'), { autoAlpha: 0 },
         { autoAlpha: 1, duration: 0.4 }, '>-0.15');
+  }
+
+  /* ——— sheet 03: the pipeline strip ————————————————————————————
+     The section pins and the strip runs sideways under it, so the five stages
+     are read left to right by scrolling down. Two things make this safe:
+
+     a) PIN_DISTANCE is a constant chosen here, not a measured one. The whole
+        point of the layout oracle is that the two renders differ by exactly
+        the pin distance and by nothing else — a pin distance derived from
+        content would make the expected delta unknowable, and the check would
+        degrade into "some number came out".
+     b) below 880px there is no pin at all: the strip is the plain native
+        horizontal scroll it already is without JS. Same height either way,
+        which is what keeps (a) true. */
+  /* 1200 against roughly 620px of travel at desktop width: the strip reads as
+     a deliberate drag rather than the crawl 2000 produced. It is a constant
+     rather than a multiple of the measured travel so the oracle's expected
+     delta stays a number I can state up front. */
+  const PIN_DISTANCE = 1200;
+  const works = document.querySelector('.works');
+  if (works) {
+    const strip = works.querySelector('.strip');
+    const track = works.querySelector('.track');
+
+    gsap.matchMedia().add('(min-width: 880px)', () => {
+      /* re-read on every match: the travel is content-width dependent, but the
+         PIN distance deliberately is not */
+      const travel = () => Math.max(0, track.scrollWidth - strip.clientWidth);
+      const tween = gsap.fromTo(track, { x: 0 }, {
+        x: () => -travel(), ease: 'none',
+        scrollTrigger: {
+          trigger: works, start: 'center center', end: '+=' + PIN_DISTANCE,
+          pin: true, scrub: 0.4, invalidateOnRefresh: true,
+          anticipatePin: 1,
+        },
+      });
+      return () => { tween.scrollTrigger && tween.scrollTrigger.kill(true); tween.kill(); gsap.set(track, { x: 0 }); };
+    });
+
+    /* the stages plot themselves as they come, driven by the strip's own
+       horizontal position rather than the page's vertical one */
+    gsap.fromTo(works.querySelectorAll('.stage'), { autoAlpha: 0, y: 16 }, {
+      autoAlpha: 1, y: 0, duration: 0.5, ease: 'power2.out', stagger: 0.09,
+      scrollTrigger: { trigger: works, start: 'top 85%', once: true },
+    });
   }
 
   /* the split: copy from the left, the framed photograph holds a slow

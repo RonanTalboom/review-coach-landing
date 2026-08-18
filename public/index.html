@@ -371,6 +371,7 @@ html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eas
 [data-motion="on"] .hero .sub,
 [data-motion="on"] .hero .row > *,
 [data-motion="on"] .kicker,
+[data-motion="on"] .stage,
 [data-motion="on"] .cell-frame > h2,
 [data-motion="on"] .cell-frame > p,
 [data-motion="on"] .split-title,
@@ -526,6 +527,54 @@ html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eas
 .plot-boot .pb-skip { position: absolute; left: 0; top: var(--leading);
   font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600;
   color: color-mix(in srgb, var(--color-text) 45%, transparent); opacity: 0; }
+
+/* — sheet 03: the pipeline, read left to right the way a drawing set is.
+   The strip is horizontal in BOTH modes and exactly the same height in both,
+   which is what keeps the oracle's arithmetic clean: with motion on the pin
+   adds its distance and nothing else, and with motion off the strip is a
+   plain native horizontal scroll. Nothing about the content depends on the
+   animation — the pin only changes what drives the strip sideways. — */
+.works { padding: calc(3 * var(--leading)) 0 calc(2.5 * var(--leading)); }
+.works > .caption-rule { margin-bottom: calc(var(--leading) + 8px); } /* clears the
+   stage crosses' 8px overhang, as .features' rule does */
+.strip { overflow-x: auto; overscroll-behavior-x: contain;
+  /* bleed the strip to the page edge while keeping the first stage on the
+     wrap's text axis */
+  margin-inline: calc(-1 * var(--edge)); padding-inline: var(--edge);
+  scrollbar-width: none; }
+.strip::-webkit-scrollbar { display: none; }
+[data-motion="on"] .strip { overflow: hidden; } /* the pin drives it instead */
+.track { display: flex; gap: clamp(20px, 3vw, 48px); width: max-content;
+  list-style: none; margin: 0; padding: 0; }
+.stage { position: relative; width: clamp(260px, 26vw, 330px);
+  border: 1px solid var(--color-divider); padding: var(--leading);
+  display: flex; flex-direction: column; }
+.stage .st-num { font-size: 13px; line-height: var(--half); letter-spacing: 0.08em;
+  font-weight: 600; color: var(--color-accent-700); font-feature-settings: "tnum" 1;
+  margin-bottom: var(--half); }
+.stage h2 { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
+  font-size: 22px; line-height: var(--leading); letter-spacing: 0.02em; text-transform: uppercase;
+  margin: 0; text-box: trim-both cap alphabetic; }
+.stage p { font-size: 15px; line-height: var(--leading); margin: calc(var(--leading) - 1cap) 0 0;
+  color: color-mix(in srgb, var(--color-text) 78%, transparent); text-box: trim-both cap alphabetic;
+  flex: 1; }
+/* the module path is the drawing's part number — set in the system's mono at
+   the furniture scale, seated on its own rule */
+.stage .st-mod { display: block; margin-top: var(--leading);
+  padding-top: var(--half); border-top: 1px solid var(--color-divider);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px; line-height: var(--half);
+  color: color-mix(in srgb, var(--color-text) 70%, transparent);
+  overflow-wrap: anywhere; }
+/* the flow arrows between stages — a drawn connector, not a glyph */
+.stage:not(:last-child)::after { content: ""; position: absolute;
+  top: calc(var(--leading) + 6px); left: 100%; width: clamp(20px, 3vw, 48px);
+  height: 1px; background: var(--color-divider); }
+.stage:not(:last-child)::before { content: ""; position: absolute;
+  top: calc(var(--leading) + 3px); left: calc(100% + clamp(20px, 3vw, 48px) - 7px);
+  width: 7px; height: 7px; border-top: 1px solid var(--color-divider);
+  border-right: 1px solid var(--color-divider); transform: rotate(45deg) translateY(-0.5px);
+  transform-origin: center; }
 </style>
 </head>
 <body>
@@ -554,7 +603,7 @@ html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eas
         <span class="tb-title">Review Coach — operating limits</span>
         <span class="tb-cell">RC-01</span>
         <span class="tb-cell">Rev A</span>
-        <span class="tb-cell">Sheet 01 of 04</span>
+        <span class="tb-cell">Sheet 01 of 05</span>
       </header>
       <table class="table spec">
         <colgroup><col class="c-num"><col class="c-prop"><col class="c-val"><col class="c-rem"></colgroup>
@@ -596,9 +645,52 @@ html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eas
     </div>
   </section>
 
-  <section class="split" id="practice" data-sheet="03" data-sheet-name="In practice">
+
+  <!-- sheet 03: the pipeline as a drawing set read left to right. Every stage
+       and every module path here is taken from the app's own README — this is
+       the real call order through src-tauri/src, not an illustration. -->
+  <section class="works" id="works" data-sheet="03" data-sheet-name="How it works">
+    <span class="kicker">03 · How it works</span>
+    <hr class="caption-rule" />
+    <div class="strip">
+      <ol class="track">
+        <li class="stage">
+          <span class="st-num">01</span>
+          <h2>Fetch</h2>
+          <p>Parse the PR ref, pull the metadata through <code>gh</code>, then a blobless clone and <code>gh pr checkout</code>.</p>
+          <span class="st-mod">src-tauri/src/github.rs</span>
+        </li>
+        <li class="stage">
+          <span class="st-num">02</span>
+          <h2>Diff</h2>
+          <p>Build the per-file unified diff — the change, separated from the codebase it lands in.</p>
+          <span class="st-mod">src-tauri/src/diff.rs</span>
+        </li>
+        <li class="stage">
+          <span class="st-num">03</span>
+          <h2>Infer</h2>
+          <p>Read the whole repo for its de-facto casing per kind, and flag only where this PR drifts from it.</p>
+          <span class="st-mod">src-tauri/src/conventions.rs</span>
+        </li>
+        <li class="stage">
+          <span class="st-num">04</span>
+          <h2>Coach</h2>
+          <p>An Ousterhout-anchored prompt deals the cards — question-shaped, and capped at seven however large the PR.</p>
+          <span class="st-mod">src-tauri/src/coach.rs</span>
+        </li>
+        <li class="stage">
+          <span class="st-num">05</span>
+          <h2>Export</h2>
+          <p>The notes you accepted leave as a clean markdown review. Nothing is posted for you.</p>
+          <span class="st-mod">src-tauri/src/review.rs</span>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="split" id="practice" data-sheet="04" data-sheet-name="In practice">
     <div class="split-copy">
-      <span class="kicker">03 · In practice</span>
+      <span class="kicker">04 · In practice</span>
       <hr class="caption-rule" />
       <h2 class="split-title">Seven questions, then silence</h2>
       <p class="note">Paste a PR URL. Review Coach fetches the metadata, clones bloblessly, reads the diff against the codebase around it, and deals at most seven cards. Each is a question about the change — never a comment left in your name.</p>
@@ -618,8 +710,8 @@ html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eas
     </figure>
   </section>
 
-  <section class="close" id="run" data-sheet="04" data-sheet-name="Run it">
-    <span class="kicker">04 · Run it</span>
+  <section class="close" id="run" data-sheet="05" data-sheet-name="Run it">
+    <span class="kicker">05 · Run it</span>
     <hr class="caption-rule" />
     <h3>Run it on your next PR</h3>
     <p class="sub">Clone the repo, <code>npm run tauri dev</code>, paste a PR URL. Requires <code>gh</code> authenticated, Node 18+, and Rust stable — with an Anthropic API key, or LM Studio running fully offline.</p>
