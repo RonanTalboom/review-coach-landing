@@ -10,6 +10,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 const SHELL='/Users/ronan/Library/Caches/ms-playwright/chromium_headless_shell-1208/chrome-headless-shell-mac-arm64/chrome-headless-shell';
 const OUT=process.env.SHOT_DIR || fs.mkdtempSync('/tmp/rc-landing-shots-');
+fs.mkdirSync(OUT,{recursive:true});
 const EXPECTED_DELTA = Number(process.argv[2] ?? 0);
 const W = Number(process.argv[3] ?? 1440), H = Number(process.argv[4] ?? 1000);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -67,7 +68,12 @@ async function run(reduced, shotPrefix){
     stillHidden: [...document.querySelectorAll('.kicker, .cells > *, .plate, .quote blockquote, .close h3, .corner, .split-figure, .stage')]
       .filter(e=>{const s=getComputedStyle(e); return s.visibility==='hidden'||s.opacity==='0';})
       .map(e=>e.className).slice(0,8),
+    stillHiddenText: [...document.querySelectorAll('.cell-frame > h2, .cell-frame > p, .split-copy .note')]
+      .filter(e=>{const s=getComputedStyle(e); return s.visibility==='hidden'||s.opacity==='0';}).length,
     watched: document.querySelectorAll('.kicker, .cells > *, .plate, .quote blockquote, .close h3, .corner, .split-figure, .stage').length,
+    penFrames: document.querySelectorAll('.pen-frame').length,
+    penDrawn: [...document.querySelectorAll('.pen-frame rect')].map(r=>Math.round(parseFloat(getComputedStyle(r).strokeDashoffset||'0'))),
+    emptyCells: [...document.querySelectorAll('.cell-frame')].filter(c=>{const h=c.querySelector('h2'); return !h||getComputedStyle(h).visibility==='hidden';}).length,
     scrollH: document.documentElement.scrollHeight
   })`));
   await shot('bottom');

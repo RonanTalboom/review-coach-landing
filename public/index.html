@@ -485,8 +485,9 @@ html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eas
   font-size: 11px; line-height: var(--half); letter-spacing: 0.12em;
   text-transform: uppercase; font-weight: 600;
   font-feature-settings: "tnum" 1; font-variant-numeric: tabular-nums;
-  width: 22ch;  /* pinned: the text is rewritten every frame and must not
-     resize its own box while doing it */
+  width: 34ch;  /* pinned, and wide enough for the longest form the readout
+     takes (position plus a dimension call-out): the text is rewritten every
+     frame and must never resize its own box while doing it */
   color: var(--color-accent-700); white-space: nowrap; }
 /* the edge ticks — where the rules meet the page edge, the drawing marks it */
 .crosshair .tick { position: absolute; background: var(--color-accent); opacity: 0.55; }
@@ -575,6 +576,24 @@ html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eas
   width: 7px; height: 7px; border-top: 1px solid var(--color-divider);
   border-right: 1px solid var(--color-divider); transform: rotate(45deg) translateY(-0.5px);
   transform-origin: center; }
+
+/* the close section's contour field: Vanta TOPOLOGY is p5-based and has no
+   transparent-ground path the way NET does, so it paints an opaque slab of
+   the paper token and the lines sit on it. Same reasoning as the hero's
+   lattice otherwise — behind the content, masked at the edges, decorative
+   and so pointer-events: none. */
+.close { position: relative; }
+.close > *:not(.topo-host) { position: relative; z-index: 1; }
+.topo-host { position: absolute; inset: calc(-1 * var(--leading)) calc(-1 * var(--edge));
+  z-index: 0; pointer-events: none; opacity: 0.34; overflow: hidden;
+  /* fade at both ends AND at the left, where the contours bunch hardest and
+     would otherwise crowd the kicker's axis */
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 72%, transparent),
+    linear-gradient(to right, transparent, #000 18%);
+  mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 72%, transparent),
+    linear-gradient(to right, transparent, #000 18%);
+  -webkit-mask-composite: source-in; mask-composite: intersect; }
+@media (max-width: 880px) { .topo-host { opacity: 0.2; } }
 </style>
 </head>
 <body>
@@ -723,11 +742,15 @@ html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eas
 
   <footer>Review Coach · review.consensuslabs — built with Tauri 2, Rust and React. Coaching by Claude or a local model.</footer>
 </div>
+<!-- Only the motion engine loads up front: gsap + ScrollTrigger + lenis is 48K
+     gzipped and everything the page's structure depends on runs off it. The two
+     Vanta stacks are FETCHED ON DEMAND by motion.js instead — three.js is 148K
+     gzipped and p5 is 239K, which together are nine tenths of the payload for
+     two background textures at a quarter opacity. A visitor who reads the hero
+     and leaves pays for neither. -->
 <script src="./vendor/gsap.min.js"></script>
 <script src="./vendor/ScrollTrigger.min.js"></script>
 <script src="./vendor/lenis.min.js"></script>
-<script src="./vendor/three.min.js"></script>
-<script src="./vendor/vanta.net.min.js"></script>
 <script src="./motion.js"></script>
 <script src="image-slot.js"></script>
 <script>

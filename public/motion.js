@@ -398,13 +398,25 @@
       ryy: gsap.quickTo(ry, 'y', { duration: 0.18, ease: 'power3.out' }),
     };
     const pad = (n) => String(Math.max(0, Math.round(n))).padStart(4, '0');
+    /* over a framed object the rule stops being a position and becomes a
+       measurement: the readout takes the object's size, the way a dimension
+       call-out on a drawing does. Only the system's own drawn frames answer —
+       measuring a paragraph would be noise. */
+    const MEASURABLE = '.cell-frame, .plate, .stage, .split-figure, .btn';
     let raf = 0, px = 0, py = 0;
     const paint = () => {
       raf = 0;
       set.hy(py); set.lyy(py); set.ryy(py);
       set.vx(px); set.txx(px); set.bxx(px);
       set.rx(px); set.ry(py);
-      read.textContent = `X ${pad(px)}  Y ${pad(py + scrollY)}`;
+      let text = `X ${pad(px)}  Y ${pad(py + scrollY)}`;
+      const hit = document.elementFromPoint(px, py);
+      const frame = hit && hit.closest && hit.closest(MEASURABLE);
+      if (frame) {
+        const r = frame.getBoundingClientRect();
+        text += `  ⌀ ${Math.round(r.width)}×${Math.round(r.height)}`;
+      }
+      read.textContent = text;
     };
     addEventListener('pointermove', (e) => {
       if (e.pointerType === 'touch') return;
@@ -507,48 +519,95 @@
     });
   }
 
-  /* ——— Vanta NET, contained ————————————————————————————————————
-     Vanta's catalog is mostly weather (fog, clouds, waves) and none of it
-     belongs on an engineering document. NET is the exception: a wireframe
-     lattice of points and hairlines, which is this system's own grammar —
-     visible drawn structure — rendered in the single steel accent at low
-     alpha behind the hero, on a transparent ground so the paper stays paper.
-     The instance is torn down whenever the hero leaves the viewport: a
-     three.js rAF running forever behind a scrolled-past marketing hero is
-     pure battery for nothing. */
-  const hero = document.querySelector('.hero');
-  if (hero && window.VANTA && window.VANTA.NET && window.THREE) {
+  /* ——— the two background fields, both fetched on demand ————————
+     three.js is 148K gzipped and p5 is 239K — together nine tenths of this
+     page's JavaScript, for two textures that live at a quarter opacity behind
+     the content. Neither is in the document's script tags: each stack is
+     fetched the first time its section comes near, so a visitor who reads the
+     hero and leaves downloads neither, and nobody downloads p5 until they have
+     scrolled to the end of the page.
+
+     Both instances are torn down whenever their section leaves the viewport —
+     a WebGL or p5 draw loop running behind a scrolled-past marketing section
+     is pure battery for nothing. */
+  const loaded = new Map();
+  const loadScript = (src) => {
+    if (loaded.has(src)) return loaded.get(src);
+    const p = new Promise((resolve, reject) => {
+      const el = document.createElement('script');
+      el.src = src; el.async = false;   /* async=false preserves ORDER across a
+        batch: vanta reads window.THREE / window.p5 at evaluation time, so the
+        engine must have finished evaluating before its plugin starts */
+      el.onload = resolve; el.onerror = reject;
+      document.head.appendChild(el);
+    });
+    loaded.set(src, p);
+    return p;
+  };
+  const loadAll = (srcs) => srcs.reduce((chain, s) => chain.then(() => loadScript(s)), Promise.resolve());
+
+  /* mount(section, className, srcs, make) — the shared shape of both fields:
+     fetch on approach, start on entry, destroy on exit, never start twice. */
+  function backgroundField(section, className, srcs, make) {
+    if (!section) return;
     const host = document.createElement('div');
-    host.className = 'vanta-host';
-    host.setAttribute('aria-hidden', 'true');   /* law #3: decorative, and
-       pointer-events: none in the stylesheet — a live canvas over the hero
-       would swallow both call-to-action clicks */
-    hero.prepend(host);
+    host.className = className;
+    host.setAttribute('aria-hidden', 'true');  /* decorative; the stylesheet
+      also gives it pointer-events: none, or the canvas eats the section's
+      controls — the same contract the registration crosses sign */
+    section.prepend(host);
 
-    let effect = null;
-    const start = () => {
-      if (effect) return;
-      effect = window.VANTA.NET({
-        el: host,
-        THREE: window.THREE,
-        /* mouseControls registers a global scroll listener that reads
-           getCanvasRect() — a forced layout read on every Lenis frame, for a
-           parallax nobody sees at 0.26 opacity */
-        mouseControls: false, touchControls: false, gyroControls: false,
-        minHeight: 200, minWidth: 200,
-        scale: 1, scaleMobile: 1,
-        color: 0x5980a6,          /* --color-accent, the single hue */
-        backgroundAlpha: 0,       /* the paper ground shows through */
-        points: 6, maxDistance: 19, spacing: 22,   /* sparse: a lattice, not a mesh */
-        showDots: true,
-      });
-    };
+    let effect = null, pending = false, wanted = false;
     const stop = () => { if (effect) { effect.destroy(); effect = null; } };
+    const start = () => {
+      if (effect || pending) return;
+      pending = true;
+      loadAll(srcs).then(() => {
+        pending = false;
+        if (!wanted) return;              /* scrolled away while it downloaded */
+        try { effect = make(host); } catch (e) { host.remove(); }
+      }).catch(() => { pending = false; host.remove(); });
+    };
 
-    new IntersectionObserver(([e]) => (e.isIntersecting ? start() : stop()), { threshold: 0 })
-      .observe(hero);
+    /* fetch early (400px of runway), but only start drawing on actual entry */
+    new IntersectionObserver(([e]) => { if (e.isIntersecting) loadAll(srcs); },
+      { rootMargin: '400px' }).observe(section);
+    new IntersectionObserver(([e]) => { wanted = e.isIntersecting; e.isIntersecting ? start() : stop(); },
+      { threshold: 0 }).observe(section);
     addEventListener('pagehide', stop);
   }
+
+  /* the hero: NET is a wireframe lattice of points and hairlines — this
+     system's own grammar, visible drawn structure — in the single steel
+     accent on a transparent ground, so the paper stays paper. The rest of
+     Vanta's catalog is weather, and none of it belongs on a drawing. */
+  backgroundField(document.querySelector('.hero'), 'vanta-host',
+    ['./vendor/three.min.js', './vendor/vanta.net.min.js'],
+    (host) => window.VANTA.NET({
+      el: host, THREE: window.THREE,
+      /* mouseControls registers a global scroll listener that reads
+         getCanvasRect() on every Lenis frame, for a parallax invisible here */
+      mouseControls: false, touchControls: false, gyroControls: false,
+      minHeight: 200, minWidth: 200, scale: 1, scaleMobile: 1,
+      color: 0x5980a6,          /* --color-accent, the single hue */
+      backgroundAlpha: 0,       /* the paper ground shows through */
+      points: 6, maxDistance: 19, spacing: 22,   /* sparse: a lattice, not a mesh */
+      showDots: true,
+    }));
+
+  /* the close: TOPOLOGY draws contours, which is what the last sheet of a
+     drawing set should be sitting on. It is p5-based, so unlike NET it has no
+     transparent-ground path — backgroundColor takes the paper token instead
+     and the slab is invisible against the page it sits on. */
+  backgroundField(document.querySelector('.close'), 'topo-host',
+    ['./vendor/p5.min.js', './vendor/vanta.topology.min.js'],
+    (host) => window.VANTA.TOPOLOGY({
+      el: host, p5: window.p5,
+      mouseControls: false, touchControls: false, gyroControls: false,
+      minHeight: 200, minWidth: 200, scale: 1, scaleMobile: 1,
+      color: 0x5980a6,
+      backgroundColor: 0xf2f2f3,   /* --color-bg */
+    }));
 
   ScrollTrigger.refresh();
 })();
