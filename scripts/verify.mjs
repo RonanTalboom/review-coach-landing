@@ -1,98 +1,143 @@
 /* Layout oracle + click-through for review-coach-landing.
-   Renders the page twice — motion on, and prefers-reduced-motion — and asserts:
-     1. LANDMARK: .plate's absolute document Y matches between modes. Everything
-        above the pinned section is covered by this, exactly as the old
-        scrollHeight check was, and it survives the pin.
-     2. DELTA: scrollH_motion - scrollH_reduced === the pin distance I chose.
-        Any other number is a layout write that leaked out of the motion layer.
-   Usage: node verify.mjs [expectedDelta] [width] [height]  */
+
+   Renders the page twice under CDP — motion on, and prefers-reduced-motion —
+   and asserts:
+     LANDMARK  #session's absolute document Y is identical in both modes, so
+               nothing above the pinned track wrote layout.
+     DELTA     scrollH(motion) - scrollH(reduced) === window.__rcPin, the pin
+               distance the motion layer itself published. Any other number is
+               a layout write that leaked out of the motion layer.
+     OVERFLOW  no horizontal page scroll in either mode.
+     SETTLED   after walking the whole page, no revealed element is left at
+               opacity 0 or visibility hidden.
+     CLICK     the hero and header calls to action receive their own clicks.
+     MENU      below 900px the menu opens, and Escape closes it.
+     ERRORS    no console errors or uncaught exceptions.
+
+   Usage:  python3 -m http.server 4321 --directory public &
+           node scripts/verify.mjs            # 1440x1000
+           node scripts/verify.mjs 390 844    # phone
+   Screenshots land in $SHOT_DIR (default: a fresh temp dir). */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
-const SHELL='/Users/ronan/Library/Caches/ms-playwright/chromium_headless_shell-1208/chrome-headless-shell-mac-arm64/chrome-headless-shell';
-const OUT=process.env.SHOT_DIR || fs.mkdtempSync('/tmp/rc-landing-shots-');
-fs.mkdirSync(OUT,{recursive:true});
-const EXPECTED_DELTA = Number(process.argv[2] ?? 0);
-const W = Number(process.argv[3] ?? 1440), H = Number(process.argv[4] ?? 1000);
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+import os from 'node:os';
+import path from 'node:path';
 
-const proc=spawn(SHELL,['--remote-debugging-port=9334','--headless=new','--hide-scrollbars',
-  `--window-size=${W},${H}`,'--use-gl=angle','--enable-unsafe-swiftshader','about:blank'],{stdio:['ignore','pipe','pipe']});
-let wsurl=null;
-proc.stderr.on('data',d=>{const m=/ws:\/\/[^\s]+/.exec(d.toString()); if(m&&!wsurl) wsurl=m[0];});
-for(let i=0;i<60 && !wsurl;i++) await sleep(200);
-if(!wsurl){console.error('no ws'); process.exit(1);}
-const ws=new WebSocket(wsurl); let id=0; const pend=new Map();
-await new Promise(r=>ws.onopen=r);
-let events=[];
-ws.onmessage=e=>{const m=JSON.parse(e.data); if(m.id&&pend.has(m.id)){pend.get(m.id)(m); pend.delete(m.id);} else if(m.method) events.push(m);};
-const send=(method,params={},sessionId)=>new Promise(r=>{const i=++id; pend.set(i,r); ws.send(JSON.stringify({id:i,method,params,sessionId}));});
+const SHELL = process.env.CHROME_SHELL ||
+  `${os.homedir()}/Library/Caches/ms-playwright/chromium_headless_shell-1208/chrome-headless-shell-mac-arm64/chrome-headless-shell`;
+const OUT = process.env.SHOT_DIR || fs.mkdtempSync(path.join(os.tmpdir(), 'rc-landing-shots-'));
+fs.mkdirSync(OUT, { recursive: true });
+const W = Number(process.argv[2] ?? 1440), H = Number(process.argv[3] ?? 1000);
+const URL_ = process.env.URL || 'http://localhost:4321/';
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function run(reduced, shotPrefix){
-  events=[];
-  const {result:{targetId}}=await send('Target.createTarget',{url:'about:blank'});
-  const {result:{sessionId}}=await send('Target.attachToTarget',{targetId,flatten:true});
-  const S=(m,p={})=>send(m,p,sessionId);
+const proc = spawn(SHELL, ['--remote-debugging-port=9334', '--headless=new', '--hide-scrollbars',
+  `--window-size=${W},${H}`, '--use-gl=angle', '--enable-unsafe-swiftshader', 'about:blank'], { stdio: ['ignore', 'pipe', 'pipe'] });
+let wsurl = null;
+proc.stderr.on('data', (d) => { const m = /ws:\/\/[^\s]+/.exec(d.toString()); if (m && !wsurl) wsurl = m[0]; });
+for (let i = 0; i < 60 && !wsurl; i++) await sleep(200);
+if (!wsurl) { console.error('no devtools websocket'); process.exit(1); }
+const ws = new WebSocket(wsurl);
+let id = 0; const pend = new Map(); let events = [];
+await new Promise((r) => (ws.onopen = r));
+ws.onmessage = (e) => { const m = JSON.parse(e.data); if (m.id && pend.has(m.id)) { pend.get(m.id)(m); pend.delete(m.id); } else if (m.method) events.push(m); };
+const send = (method, params = {}, sessionId) => new Promise((r) => { const i = ++id; pend.set(i, r); ws.send(JSON.stringify({ id: i, method, params, sessionId })); });
+
+async function run(reduced, prefix) {
+  events = [];
+  const { result: { targetId } } = await send('Target.createTarget', { url: 'about:blank' });
+  const { result: { sessionId } } = await send('Target.attachToTarget', { targetId, flatten: true });
+  const S = (m, p = {}) => send(m, p, sessionId);
   await S('Page.enable'); await S('Runtime.enable'); await S('Log.enable');
-  await S('Emulation.setDeviceMetricsOverride',{width:W,height:H,deviceScaleFactor:1,mobile:false});
-  if(reduced) await S('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
-  await S('Page.navigate',{url:'http://localhost:4321/'});
-  await sleep(5000);
-  const ev=async expr=>{const r=await S('Runtime.evaluate',{expression:expr,returnByValue:true,awaitPromise:true});
-    if(r.result?.exceptionDetails) return 'EXCEPTION: '+r.result.exceptionDetails.text+' '+(r.result.exceptionDetails.exception?.description||'');
-    return r.result?.result?.value;};
-  const shot=async name=>{const r=await S('Page.captureScreenshot',{format:'png'});
-    fs.writeFileSync(`${OUT}/${shotPrefix}-${name}.png`,Buffer.from(r.result.data,'base64'));};
+  const mobile = W <= 900;
+  await S('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile });
+  if (reduced) await S('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+  await S('Page.navigate', { url: URL_ });
+  await sleep(5000); // the first-visit curtain runs ~2.3s
+  const ev = async (expr) => {
+    const r = await S('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true });
+    if (r.result?.exceptionDetails) return 'EXCEPTION: ' + (r.result.exceptionDetails.exception?.description || r.result.exceptionDetails.text);
+    return r.result?.result?.value;
+  };
+  const shot = async (name) => {
+    const r = await S('Page.captureScreenshot', { format: 'png' });
+    fs.writeFileSync(`${OUT}/${prefix}-${name}.png`, Buffer.from(r.result.data, 'base64'));
+  };
+  const hits = (sel) => `(()=>{const b=document.querySelector('${sel}'); if(!b) return 'missing'; const r=b.getBoundingClientRect();
+    if(!r.width) return 'hidden'; const el=document.elementFromPoint(r.left+r.width/2, r.top+r.height/2); return !!el && b.contains(el);})()`;
 
-  const out={};
+  const out = {};
   out.top = JSON.parse(await ev(`JSON.stringify({
     scrollH: document.documentElement.scrollHeight,
-    plateY: Math.round(document.querySelector('.plate').getBoundingClientRect().top + window.scrollY),
-    motionAttr: document.documentElement.getAttribute('data-motion'),
-    overlayGone: !document.querySelector('.plot-boot'),
-    btnClickable: (()=>{const b=document.querySelector('.hero .row .btn-primary'); const r=b.getBoundingClientRect();
-      const el=document.elementFromPoint(r.left+r.width/2, r.top+r.height/2); return !!el && b.contains(el);})(),
-    navClickable: (()=>{const b=document.querySelector('.nav .btn-primary'); const r=b.getBoundingClientRect();
-      const el=document.elementFromPoint(r.left+r.width/2, r.top+r.height/2); return !!el && b.contains(el);})()
+    sessionY: Math.round(document.querySelector('#session').getBoundingClientRect().top + window.scrollY),
+    overflowX: document.documentElement.scrollWidth - window.innerWidth,
+    ready: !!window.__rcReady, pin: window.__rcPin ?? null,
+    curtainGone: getComputedStyle(document.getElementById('curtain')).display === 'none',
+    heroCta: ${hits('.hero-actions .btn-solid')},
+    navCta: ${mobile ? "'n/a'" : hits('.nav-cta')},
   })`));
-  await shot('hero');
+  await shot('01-hero');
 
-  /* walk the whole page in steps so every ScrollTrigger fires */
-  const steps = 14;
-  for(let i=1;i<=steps;i++){
-    await ev(`window.scrollTo(0, ${i}/${steps} * (document.documentElement.scrollHeight - innerHeight))`);
-    await sleep(650);
-    if(i===Math.round(steps*0.55)) await shot('mid');
+  if (mobile) {
+    await ev(`document.getElementById('menuBtn').click()`); await sleep(900);
+    out.menuOpen = JSON.parse(await ev(`JSON.stringify({ expanded: document.getElementById('menuBtn').getAttribute('aria-expanded'),
+      visible: !document.getElementById('menuOverlay').hidden, linkHit: ${hits('.menu-item a')} })`));
+    await shot('02-menu');
+    await S('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await S('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
+    await sleep(900);
+    out.menuClosed = JSON.parse(await ev(`JSON.stringify({ expanded: document.getElementById('menuBtn').getAttribute('aria-expanded'),
+      hidden: document.getElementById('menuOverlay').hidden, htmlOverflow: document.documentElement.style.overflow })`));
   }
-  await sleep(1200);
+
+  // Walk the page so every ScrollTrigger fires; screenshot each section as it lands.
+  const ids = ['app', 'different', 'limits', 'session', 'tags', 'judgment', 'learning', 'github', 'providers', 'faq', 'access'];
+  let n = 3;
+  for (const sid of ids) {
+    await ev(`(()=>{const el=document.getElementById('${sid}'); const y=el.getBoundingClientRect().top+window.scrollY-64;
+      (window.__lenis ? window.__lenis.scrollTo(y,{immediate:true}) : window.scrollTo(0,y));})()`);
+    await sleep(1100);
+    await shot(String(n++).padStart(2, '0') + '-' + sid);
+    if (sid === 'session' && !mobile && !reduced) {
+      // travel half the pin, then all of it, to see the track move
+      for (const f of [0.5, 1]) {
+        await ev(`(()=>{const y=window.scrollY + ${f === 0.5 ? 0.5 : 0.5}*(window.__rcPin||0); (window.__lenis ? window.__lenis.scrollTo(y,{immediate:true}) : window.scrollTo(0,y));})()`);
+        await sleep(1200);
+        await shot(String(n++).padStart(2, '0') + '-session-' + f);
+      }
+    }
+  }
+  await ev(`(()=>{const y=document.documentElement.scrollHeight; (window.__lenis ? window.__lenis.scrollTo(y,{immediate:true}) : window.scrollTo(0,y));})()`);
+  await sleep(1600);
+  await shot(String(n++).padStart(2, '0') + '-footer');
+
   out.bottom = JSON.parse(await ev(`JSON.stringify({
-    stillHidden: [...document.querySelectorAll('.kicker, .cells > *, .plate, .quote blockquote, .close h3, .corner, .split-figure, .stage')]
-      .filter(e=>{const s=getComputedStyle(e); return s.visibility==='hidden'||s.opacity==='0';})
-      .map(e=>e.className).slice(0,8),
-    stillHiddenText: [...document.querySelectorAll('.cell-frame > h2, .cell-frame > p, .split-copy .note')]
-      .filter(e=>{const s=getComputedStyle(e); return s.visibility==='hidden'||s.opacity==='0';}).length,
-    watched: document.querySelectorAll('.kicker, .cells > *, .plate, .quote blockquote, .close h3, .corner, .split-figure, .stage').length,
-    penFrames: document.querySelectorAll('.pen-frame').length,
-    penDrawn: [...document.querySelectorAll('.pen-frame rect')].map(r=>Math.round(parseFloat(getComputedStyle(r).strokeDashoffset||'0'))),
-    emptyCells: [...document.querySelectorAll('.cell-frame')].filter(c=>{const h=c.querySelector('h2'); return !h||getComputedStyle(h).visibility==='hidden';}).length,
-    scrollH: document.documentElement.scrollHeight
+    stillHidden: [...document.querySelectorAll('[data-reveal], [data-hero-reveal], .app-card, .proc, .hcard > *, #heroTitle, .sec-title')]
+      .filter(e => { const s = getComputedStyle(e); return s.visibility === 'hidden' || parseFloat(s.opacity) < 0.99; })
+      .map(e => (e.id ? '#' + e.id : '') + '.' + String(e.className).split(' ')[0]).slice(0, 12),
+    watched: document.querySelectorAll('[data-reveal], [data-hero-reveal], .app-card, .proc, .hcard > *').length,
+    overflowX: document.documentElement.scrollWidth - window.innerWidth,
   })`));
-  await shot('bottom');
-  out.errors=[...new Set(events.filter(e=>e.method==='Log.entryAdded' && e.params.entry.level==='error')
-    .map(e=>e.params.entry.text))].filter(t=>!t.includes('image-slots.state.json'));
-  await S('Target.closeTarget',{targetId});
+  out.errors = [...new Set(events
+    .filter((e) => (e.method === 'Log.entryAdded' && e.params.entry.level === 'error') || e.method === 'Runtime.exceptionThrown')
+    .map((e) => e.params.entry?.text || e.params.exceptionDetails?.exception?.description || e.params.exceptionDetails?.text))];
+  await S('Target.closeTarget', { targetId });
   return out;
 }
 
-const motion = await run(false,'m');
-const rm = await run(true,'rm');
+const motion = await run(false, 'm');
+const rm = await run(true, 'rm');
 const delta = motion.top.scrollH - rm.top.scrollH;
-const landmarkOK = motion.top.plateY === rm.top.plateY;
-const deltaOK = delta === EXPECTED_DELTA;
-console.log('screenshots: '+OUT);
-console.log(JSON.stringify({
-  LANDMARK: landmarkOK ? `PASS (plate at ${motion.top.plateY} in both)` : `FAIL motion=${motion.top.plateY} reduced=${rm.top.plateY}`,
-  DELTA: deltaOK ? `PASS (${delta} === expected ${EXPECTED_DELTA})` : `FAIL got ${delta}, expected ${EXPECTED_DELTA}`,
-  motion, rm
-},null,1));
+const checks = {
+  LANDMARK: motion.top.sessionY === rm.top.sessionY ? `PASS (#session at ${rm.top.sessionY} in both)` : `FAIL motion=${motion.top.sessionY} reduced=${rm.top.sessionY}`,
+  DELTA: delta === motion.top.pin ? `PASS (${delta} === published pin ${motion.top.pin})` : `FAIL got ${delta}, pin says ${motion.top.pin}`,
+  OVERFLOW: [motion.top, motion.bottom, rm.top, rm.bottom].every((o) => o.overflowX <= 0) ? 'PASS' : `FAIL ${[motion.top, motion.bottom, rm.top, rm.bottom].map((o) => o.overflowX)}`,
+  SETTLED: !motion.bottom.stillHidden.length && !rm.bottom.stillHidden.length ? `PASS (${motion.bottom.watched} watched)` : `FAIL m=${motion.bottom.stillHidden} rm=${rm.bottom.stillHidden}`,
+  CLICK: [motion.top.heroCta, rm.top.heroCta].every((v) => v === true) && [motion.top.navCta, rm.top.navCta].every((v) => v === true || v === 'n/a') ? 'PASS' : `FAIL hero=${motion.top.heroCta}/${rm.top.heroCta} nav=${motion.top.navCta}/${rm.top.navCta}`,
+  MENU: W > 900 ? 'n/a' : [motion, rm].every((o) => o.menuOpen.expanded === 'true' && o.menuOpen.visible && o.menuOpen.linkHit === true && o.menuClosed.expanded === 'false' && o.menuClosed.hidden && o.menuClosed.htmlOverflow === '') ? 'PASS' : `FAIL ${JSON.stringify([motion.menuOpen, motion.menuClosed, rm.menuOpen, rm.menuClosed])}`,
+  ERRORS: !motion.errors.length && !rm.errors.length ? 'PASS' : `FAIL ${JSON.stringify([...motion.errors, ...rm.errors])}`,
+};
+console.log(`screenshots: ${OUT}  (${W}x${H})`);
+console.log(JSON.stringify({ ...checks, motion: motion.top, reduced: rm.top }, null, 1));
 proc.kill();
-process.exit(landmarkOK && deltaOK ? 0 : 1);
+process.exit(Object.values(checks).every((v) => v === 'n/a' || v.startsWith('PASS')) ? 0 : 1);
