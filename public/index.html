@@ -1,768 +1,945 @@
-<!-- @template name="Landing" description="A one-page product landing in the system's own voice — an invented product (Holdfast: a fastener catalog), a condensed hero, a numbered spec-sheet plate, wireframe cells and a duotone photograph" -->
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Review Coach — a coach for the reviewer</title>
-<script src="./ds-base.js"></script>
+<title>Review Coach — a coach for the reviewer · Consensus Labs</title>
+<meta name="description" content="Review Coach is a desktop app that reads a GitHub pull request and hands the reviewer a few sharp, question-shaped prompts, grounded in the repo's own conventions. You write the review. By Consensus Labs." />
+<meta property="og:title" content="Review Coach — a coach for the reviewer" />
+<meta property="og:description" content="Not another comment bot. A few sharp questions per pull request, grounded in the repo's own conventions. You keep your judgment." />
+<meta property="og:type" content="website" />
+<meta name="theme-color" content="#f7f1e3" />
+<link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="./vendor/lenis.css" />
 <script>
-/* Arm the motion layer before first paint, so the hero's opening reveal never
-   flashes its finished state first. Two ways out, both of which land on the
-   plain, finished page: the visitor asked for reduced motion, or the motion
-   scripts failed to arrive within 3s. */
+/* Arm the motion layer before first paint so nothing flashes its finished
+   state first. Two ways out, both landing on the plain finished page: the
+   visitor asked for reduced motion, or site.js never reported ready. */
 (() => {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const de = document.documentElement;
-  de.setAttribute('data-motion', 'on');
-  setTimeout(() => { if (!window.__motionReady) de.removeAttribute('data-motion'); }, 3000);
+  de.classList.add('js-motion');
+  setTimeout(() => { if (!window.__rcReady) de.classList.remove('js-motion'); }, 3000);
 })();
 </script>
-
 <style>
-/* Template scaffolding — page layout and web-scale sizing only; every color,
-   font, radius and shadow comes from ../../styles.css. The voice is the
-   deck's, re-derived for a scrolling page: an engineering document — Barlow
-   Condensed titles in uppercase over Barlow text, visible drawn structure
-   (1px caption rules; wireframe cells with registration-cross corners for
-   the feature cards — the system's own card grammar; a registration-marked
-   spec plate for the numbers), the steel accent as the single color,
-   photographs duotoned like screen prints.
-
-   THE RHYTHM: a 24px leading unit (16px Barlow body at 1.5 — the system's
-   0.85 density runs compact), 12px half-step; line-heights and block
-   margins in unit multiples, heads cap-trimmed, ?baselines/B to review.
-   The deck's seat-pinning relaxes to per-block discipline on a fluid page.
-   The system's own interface components keep their styles.css leading.
-
-   THE LANDING LAWS (shared by all six systems' landing templates):
-   #1 display headers break per sentence (.line spans); #2 the landing
-   advertises an invented product played straight — industry's is Holdfast,
-   a bolt-and-fastener catalog written like the datasheet it is; #3
-   spacing is cluster-scoped (display leading ratio-governed ≈1.04 for the
-   uppercase condensed — the display-block lattice exemption — tight
-   single-unit gaps inside a cluster, the air between sections); #4 no
-   hero eyebrow — the nav brand names the product.
-
-   Measured Barlow values carry verbatim from the deck template: optical
-   left alignment -0.052em where caps lead a condensed display line, quote
-   hang -0.316em (Condensed 600), attribution hang -0.885em (Regular). */
+/* The Consensus Labs house style (consensuslabs.net), ported to a static page:
+   paper and ink, one green, Archivo 900 titles over IBM Plex Mono labels,
+   square corners, and 1px ink rules as the only structure. */
 :root {
-  --leading: 24px;
-  --half: 12px;
-  --edge: clamp(20px, 5vw, 72px);
-  --measure: 60ch;
+  --paper: #f7f1e3;
+  --ink: #131210;
+  --ink-soft: #4a4742;
+  --accent: #0e7a4e;
+  --accent-soft: color-mix(in srgb, var(--accent) 8%, transparent);
+  --rule: #131210;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --sans: 'Archivo', system-ui, sans-serif;
+  --ease: cubic-bezier(0.65, 0, 0.35, 1);
 }
-html { scroll-behavior: smooth; }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-body { margin: 0; text-wrap: pretty; }
-.wrap { max-width: 1200px; margin: 0 auto; padding: 0 var(--edge); }
-/* the component demo pads the masthead with its own spacing; on the page the
-   masthead's contents take the page gutter and sit on the wrap's text axis
-   (padding-only — full-width paint such as a masthead rule is untouched) */
-.nav { padding-inline: max(var(--edge), calc((100% - 1200px) / 2 + var(--edge))); }
-.nav a { white-space: nowrap; }
-.nav a[aria-current='location'] { color: var(--color-accent-700); } /* in-page anchor,
-   not a page link — 'location' is the truthful value. The 700 step, not the
-   base accent: at 14px this is small text, where the base steel's 3.7:1
-   large-text value does not reach (5.8:1 measured — the same call broadsheet's
-   round 2 made, and the kickers already make here) */
-@media (max-width: 480px) { .nav a { display: none; } } /* phone width: the nav
-   keeps brand + the one action (layout-only — the component's look is untouched) */
-
-/* — caption rules (the deck's grammar: the label sits ABOVE a drawn 1px
-   rule and the content seats below it — structure made visible) — */
-.kicker {
-  display: block; font-size: 13px; line-height: var(--half);
-  letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600;
-  color: var(--color-accent-700); /* accent-colored small text takes the deep
-     step — 5.8:1, where the base steel is a 3.7:1 large-text value */
-  font-feature-settings: "tnum" 1;
-  margin: 0 0 var(--half);
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100%;
+  background: var(--paper); color: var(--ink);
+  font-family: var(--sans); font-size: 17px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
 }
-.caption-rule { height: 1px; border: 0; margin: 0 0 calc(var(--leading) - var(--half));
-  background: var(--color-divider); }
+body { overflow-x: clip; }
+::selection { background: var(--accent); color: var(--paper); }
+a { color: inherit; text-decoration: none; }
+code { font-family: var(--mono); font-size: 0.86em; background: color-mix(in srgb, var(--ink) 7%, transparent); padding: 0.1em 0.35em; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-/* — hero — */
-.hero { padding: calc(4 * var(--leading)) 0 calc(3 * var(--leading)); }
-.display {
-  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  font-size: clamp(48px, 7vw, 96px);
-  line-height: clamp(50px, 7.3vw, 100px); /* law #3: ratio-governed ≈1.04, a
-     deliberate step below the lowercase systems' 1.06-1.11 band — uppercase
-     condensed carries no descenders to clear; the display-block lattice
-     exemption */
-  letter-spacing: 0.01em; text-transform: uppercase; margin: 0;
-  margin-left: -0.052em; /* optical left alignment — the deck's measured Condensed 600 value */
-  text-box: trim-both cap alphabetic;
+.wrap { max-width: 1320px; margin: 0 auto; padding: 0 40px; }
+.mono { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+.accent { color: var(--accent); }
+
+/* ---------- pre-paint motion states ----------
+   Only while site.js is arming. Once it reports ready, GSAP's inline styles
+   own every element; if it never does, the 3s timer drops .js-motion. */
+.js-motion:not(.motion-ready) [data-reveal],
+.js-motion:not(.motion-ready) [data-hero-reveal],
+.js-motion:not(.motion-ready) .hero-meta,
+.js-motion:not(.motion-ready) .app-card { opacity: 0; }
+.js-motion:not(.hero-ready) #heroTitle { visibility: hidden; }
+/* SplitText's line masks clip at the line box; 0.96 leading cuts descenders.
+   Padding and an equal negative margin extend the clip without moving layout. */
+.js-motion [data-split] > *, .js-motion #heroTitle > * { padding-bottom: 0.14em; margin-bottom: -0.14em; }
+
+/* ---------- intro curtain ----------
+   Fails SAFE: hidden unless JS explicitly arms it. */
+.curtain { display: none; }
+.curtain.is-armed {
+  position: fixed; inset: 0; z-index: 200; background: var(--ink); color: var(--paper);
+  display: grid; place-items: end stretch; padding: 40px;
 }
-.display .line { display: block; } /* law #1 */
-.hero .sub { font-size: 16px; line-height: var(--leading); max-width: var(--measure);
-  margin: calc(1.5 * var(--leading) - 1cap) 0 0;
-  text-box: trim-both cap alphabetic; }
-.hero .row { display: flex; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--leading); }
+.curtain.is-done { display: none; }
+.curtain-inner { display: flex; justify-content: space-between; align-items: baseline; gap: 24px; }
+.curtain-count { font-size: clamp(56px, 12vw, 150px); font-weight: 500; letter-spacing: -0.04em; line-height: 1; }
+.curtain-bar { position: absolute; left: 40px; right: 40px; bottom: 34px; height: 1px; background: var(--accent); transform: scaleX(0); transform-origin: left; }
 
-/* — the spec sheet (this system diverges from the shared stat-band chassis
-   here): where the chassis set four display numerals on a steel field,
-   Holdfast prints SHEET 01 of its own drawing set — a hairline-framed
-   plate with registration crosses (the frame every drawn object in this
-   system wears) carrying an engineering title block and the four product
-   claims as numbered datasheet rows. For a catalog "written like the
-   datasheet it is", tabulated data is the native grammar for numbers.
-   The steel ground leaves the page with the band — the deck's dividers
-   keep theirs, and the solid accent button returns to being the one
-   solid object on the board. Downstream sections number themselves into
-   the set with the deck's own kicker grammar ("02 · ").
-
-   Rhythm: the title block is a 2-unit band (24px line + half-step padding
-   each side, wrap-safe); header row 1.5 units, data rows 2 units, text
-   centered on its band (the documented optical row-centering exception —
-   no cap trim inside row bands, so the authored line boxes carry the
-   math); the plate's internal rules land on the band seams. Figures in
-   the table are COLUMNS and take tabular figures per the deck's figure
-   policy — the display-numeral proportional exception retired with the
-   stat band. The downstream kickers number into the set with the deck's
-   bare "NN · " grammar while only the plate says the word "Sheet" — the
-   linkage is deliberately soft; the sections read as numbered notes
-   around the one drawn sheet, not as four dressed plates. — */
-.sheet { padding: calc(3 * var(--leading)) 0 calc(2.5 * var(--leading)); }
-.plate { position: relative; border: 1px solid var(--color-divider); }
-.plate > .corner { position: absolute; width: 15px; height: 15px;
-  color: color-mix(in srgb, var(--color-text) 55%, transparent); pointer-events: none; }
-.plate > .corner::before { content: ""; position: absolute; left: 7px; top: 0; width: 1px; height: 100%; background: currentColor; }
-.plate > .corner::after  { content: ""; position: absolute; top: 7px; left: 0; width: 100%; height: 1px; background: currentColor; }
-.plate > .corner.tl { top: -8px; left: -8px; }
-.plate > .corner.tr { top: -8px; right: -8px; }
-.plate > .corner.bl { bottom: -8px; left: -8px; }
-.plate > .corner.br { bottom: -8px; right: -8px; }
-/* the title block — the drawing's own naming furniture: a flexing title
-   cell, then register cells (doc, revision, sheet count) divided by
-   hairlines, all at the kicker's scale. The title prints in full text
-   ink — it is the section's heading; the register cells take 70% ink,
-   5.8:1 measured on this ground, where the system's 55% furniture
-   convention is a large-text value (3.6:1) */
-.title-block { display: flex; flex-wrap: wrap; align-items: stretch;
-  border-bottom: 1px solid var(--color-divider); }
-.title-block > span { padding: var(--half) var(--leading);
-  font-size: 13px; line-height: var(--leading); letter-spacing: 0.08em;
-  text-transform: uppercase; font-weight: 600; font-feature-settings: "tnum" 1; }
-.tb-title { flex: 1; min-width: 16ch; }
-.tb-cell { border-left: 1px solid var(--color-divider); white-space: nowrap;
-  color: color-mix(in srgb, var(--color-text) 70%, transparent); }
-/* the spec table — the system's own .table component at landing scale (the
-   deck resizes it the same way). The № column takes the deep accent step,
-   the same call as the kickers (5.8:1 at 13px, where the base steel's
-   3.7:1 is a large-text value); values set in the condensed face at the
-   cell-heading scale, so the numbers stay the section's loudest objects */
-.spec { table-layout: fixed; }
-.spec col.c-num { width: calc(3 * var(--leading)); }
-.spec col.c-prop { width: 30%; }
-.spec col.c-val { width: 21%; }
-.spec th, .spec td { padding: var(--half) var(--leading) var(--half) 0; vertical-align: middle; }
-.spec th:first-child, .spec td:first-child { padding-left: var(--leading); }
-.spec th { font-size: 13px; line-height: var(--half); font-weight: 600; /* the
-     section's furniture weight — otherwise the UA's default th bold makes
-     the header row the sheet's only 700, by accident rather than decision */
-  color: color-mix(in srgb, var(--color-text) 70%, transparent); /* the component's
-     11px/60% header re-derived for the landing: 13px is still small text,
-     where 70% measures 5.8:1 and 60% falls short of 4.5:1 */ }
-.spec td { font-size: 15px; line-height: var(--leading); }
-.spec .s-num { font-size: 13px; font-weight: 600; letter-spacing: 0.08em;
-  color: var(--color-accent-700); font-feature-settings: "tnum" 1; }
-.spec .s-val { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  font-size: 22px; line-height: var(--leading); letter-spacing: 0.02em;
-  font-feature-settings: "tnum" 1; white-space: nowrap; }
-.spec .s-rem { color: color-mix(in srgb, var(--color-text) 78%, transparent); }
-.spec tbody tr:last-child td { border-bottom: 0; } /* the notes rule closes the
-   rows — avoid a doubled line against .sheet-note's divider */
-.spec tbody tr:hover { background: none; } /* a printed sheet, not an
-   interactive grid */
-.sheet-note { margin: 0; padding: var(--half) var(--leading);
-  border-top: 1px solid var(--color-divider);
-  font-size: 13px; line-height: var(--leading);
-  color: color-mix(in srgb, var(--color-text) 70%, transparent); /* 5.8:1 — see .spec th */ }
-
-/* — wireframe feature cells (the system's OWN card grammar: square,
-   thin-bordered, registration-cross corners, no surface fill) — */
-.features { padding: calc(3 * var(--leading)) 0 calc(2.5 * var(--leading)); }
-.features > .caption-rule { margin-bottom: calc(var(--leading) + 8px); } /* the cells'
-   registration crosses hang 8px above the frame's padding edge (7px of ink
-   past the 1px border) — a drawn rule keeps one full unit of air to the
-   nearest ink, so the rule clears the cross ink by 25px, not a sliver */
-.cells { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(20px, 3vw, 48px);
-  margin-top: calc(var(--leading) - var(--half)); }
-.cell-frame { position: relative; border: 1px solid var(--color-divider);
-  padding: var(--leading); } /* one full unit on every side — the cap-trimmed
-     heading seats with the same air above it as the text keeps to the frame's
-     left and right */
-.cell-frame > .corner { position: absolute; width: 15px; height: 15px;
-  color: color-mix(in srgb, var(--color-text) 55%, transparent); pointer-events: none; }
-.cell-frame > .corner::before { content: ""; position: absolute; left: 7px; top: 0; width: 1px; height: 100%; background: currentColor; }
-.cell-frame > .corner::after  { content: ""; position: absolute; top: 7px; left: 0; width: 100%; height: 1px; background: currentColor; }
-.cell-frame > .corner.tl { top: -8px; left: -8px; }
-.cell-frame > .corner.tr { top: -8px; right: -8px; }
-.cell-frame > .corner.bl { bottom: -8px; left: -8px; }
-.cell-frame > .corner.br { bottom: -8px; right: -8px; }
-.cell-frame h2 { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  font-size: 22px; line-height: var(--leading); letter-spacing: 0.02em; text-transform: uppercase;
-  margin: 0; text-box: trim-both cap alphabetic; }
-.cell-frame p { font-size: 15px; line-height: var(--leading); margin: calc(var(--leading) - 1cap) 0 0;
-  color: color-mix(in srgb, var(--color-text) 78%, transparent);
-  text-box: trim-both cap alphabetic; }
-
-/* — imagery split (the duotone screen print inside a wireframe frame —
-   the figure takes the same marked treatment as every framed object) — */
-.split { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-  gap: var(--leading) clamp(24px, 5vw, 96px); align-items: center;
-  padding: calc(2 * var(--leading)) 0 calc(3 * var(--leading)); }
-.split-title { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  font-size: 32px; line-height: calc(1.5 * var(--leading)); letter-spacing: 0.02em; text-transform: uppercase;
-  margin: 0; text-box: trim-both cap alphabetic; }
-.split-copy .note { font-size: 15px; line-height: var(--leading);
-  color: color-mix(in srgb, var(--color-text) 78%, transparent);
-  margin: calc(var(--leading) - 1cap) 0 0; max-width: 48ch; text-box: trim-both cap alphabetic; }
-.split-figure { margin: 0; } /* .blueprint owns the frame: position, the 1px
-     border, and — critically — the overflow exemption that lets the
-     registration crosses live outside the box (.blueprint.duotone
-     { overflow: visible } in styles.css; a bare .duotone clips them) */
-.split-figure > .corner { position: absolute; width: 15px; height: 15px;
-  color: color-mix(in srgb, var(--color-text) 55%, transparent); pointer-events: none; /* the
-     registration crosses overlap the slot by a few px — decorative marks
-     must not eat its hover/drop events (image-slot usage contract) */ }
-.split-figure > .corner::before { content: ""; position: absolute; left: 7px; top: 0; width: 1px; height: 100%; background: currentColor; }
-.split-figure > .corner::after  { content: ""; position: absolute; top: 7px; left: 0; width: 100%; height: 1px; background: currentColor; }
-.split-figure > .corner.tl { top: -8px; left: -8px; }
-.split-figure > .corner.tr { top: -8px; right: -8px; }
-.split-figure > .corner.bl { bottom: -8px; left: -8px; }
-.split-figure > .corner.br { bottom: -8px; right: -8px; }
-.split-figure image-slot { width: 100%; aspect-ratio: 1600 / 1187; } /* the bundled
-   photograph's natural ratio pins the box, so a swapped image cover-crops
-   into the same frame (cover framing is the component's own) */
-
-/* — quote (condensed, uppercase-free — the one lowercase condensed moment;
-   hangs at the deck's measured advances) — */
-.quote { padding: calc(2.5 * var(--leading)) 0 calc(3.5 * var(--leading)); }
-.quote blockquote {
-  font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  font-size: clamp(26px, 2.8vw, 36px); line-height: calc(1.5 * var(--leading));
-  letter-spacing: 0; max-width: 36ch; margin: 0;
-  text-indent: -0.316em; /* hang the opening " (the deck's measured advance in the Condensed 600) */
-  text-box: trim-both cap alphabetic;
+/* ---------- nav ---------- */
+header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  border-bottom: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
 }
-.quote figcaption { font-size: 15px; line-height: var(--leading);
-  color: color-mix(in srgb, var(--color-text) 70%, transparent); /* small-text ink on the
-     paper ground: 70% measures 5.8:1 (55% is a large-text value here — 3.6:1) */
-  margin: calc(2 * var(--leading) - 1cap) 0 0; /* two grid units below the quote's
-     last baseline — one reads as part of the quote block; the attribution needs air */
-  text-indent: -0.885em; /* hang the leading em-dash + space (measured in Barlow Regular) */
-  text-box: trim-both cap alphabetic; }
+.nav { display: flex; align-items: center; justify-content: space-between; height: 64px; max-width: 1320px; margin: 0 auto; padding: 0 40px; }
+.nav-logo { font-weight: 900; font-size: 18px; letter-spacing: -0.02em; display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.nav-logo .dot { width: 10px; height: 10px; background: var(--accent); display: inline-block; }
+.nav-logo .by { font-family: var(--mono); font-weight: 400; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); padding-left: 10px; border-left: 1px solid color-mix(in srgb, var(--ink) 28%, transparent); }
+.nav-links { display: flex; gap: 32px; align-items: center; }
+.nav-links a.mono { position: relative; padding: 4px 0; }
+.nav-links a.mono::after { content: ""; position: absolute; left: 0; bottom: 0; height: 2px; width: 0; background: var(--accent); transition: width 0.25s var(--ease); }
+.nav-links a.mono:hover::after, .nav-links a.mono.is-current::after { width: 100%; }
+.nav-cta { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid var(--ink); padding: 10px 20px; background: var(--ink); color: var(--paper); transition: background 0.2s, border-color 0.2s; }
+.nav-cta:hover { background: var(--accent); border-color: var(--accent); }
+.nav-progress { position: absolute; left: 0; bottom: -1px; height: 2px; width: 100%; background: var(--accent); transform: scaleX(0); transform-origin: left; }
 
-@media (max-width: 720px) {
-  /* the phone gutter (--edge bottoms out at 20px) is narrower than the hung
-     marks' measured advances, so a hung " or em-dash would press into or past
-     the viewport edge — seat the quote flush below this width; the hang
-     returns with the wider gutter */
-  .quote blockquote, .quote figcaption { text-indent: 0; }
+/* ---------- mobile menu ---------- */
+.menu-btn { display: none; width: 44px; height: 44px; border: 1px solid var(--ink); background: transparent; cursor: pointer; padding: 0; place-items: center; align-content: center; justify-items: center; gap: 6px; position: relative; z-index: 120; }
+.menu-btn .bar { display: block; width: 20px; height: 1.5px; background: var(--ink); transition: transform 0.3s var(--ease); }
+.menu-btn[aria-expanded='true'] .bar:nth-child(1) { transform: translateY(3.75px) rotate(45deg); }
+.menu-btn[aria-expanded='true'] .bar:nth-child(2) { transform: translateY(-3.75px) rotate(-45deg); }
+.menu-overlay { position: fixed; inset: 0; z-index: 110; background: var(--ink); color: var(--paper); clip-path: inset(0 0 100% 0); }
+.menu-overlay[hidden] { display: none; }
+.menu-panel { height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 32px; padding: 96px 24px 48px; }
+.menu-list { list-style: none; }
+.menu-item { border-bottom: 1px solid color-mix(in srgb, var(--paper) 22%, transparent); overflow: hidden; }
+.menu-item a { display: flex; align-items: baseline; gap: 18px; padding: 16px 2px; font-weight: 900; font-size: clamp(32px, 10vw, 52px); letter-spacing: -0.03em; line-height: 1; }
+.menu-item .mi-idx { color: var(--accent); font-size: 12px; }
+.menu-cta { align-self: start; font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid var(--paper); background: var(--paper); color: var(--ink); padding: 16px 28px; }
+html.menu-open header { z-index: 130; background: transparent; border-bottom-color: transparent; backdrop-filter: none; -webkit-backdrop-filter: none; }
+html.menu-open .nav-logo { color: var(--paper); }
+html.menu-open .nav-logo .by { color: color-mix(in srgb, var(--paper) 70%, transparent); border-left-color: color-mix(in srgb, var(--paper) 30%, transparent); }
+html.menu-open .menu-btn { border-color: var(--paper); }
+html.menu-open .menu-btn .bar { background: var(--paper); }
+
+/* ---------- hero ---------- */
+.hero { padding: 170px 0 0; position: relative; overflow: hidden; }
+.hero-grid {
+  position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--ink) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--ink) 7%, transparent) 1px, transparent 1px);
+  background-size: 88px 88px;
+  -webkit-mask-image: radial-gradient(75% 60% at 50% 30%, #000 0%, transparent 78%);
+  mask-image: radial-gradient(75% 60% at 50% 30%, #000 0%, transparent 78%);
+}
+.hero .wrap { position: relative; }
+.hero-meta { display: flex; justify-content: space-between; align-items: baseline; gap: 24px; margin-bottom: 36px; color: var(--ink-soft); }
+.hero-rot { display: inline-flex; align-items: baseline; flex-wrap: wrap; }
+.rot-main { display: inline-flex; overflow: hidden; color: var(--accent); white-space: pre; }
+.rot-main .ch { display: inline-block; }
+.hero-geo { text-align: right; }
+.hero-geo .enc { color: var(--accent); opacity: 0.75; }
+.hero h1 { font-weight: 900; font-size: clamp(52px, 8.2vw, 132px); line-height: 0.96; letter-spacing: -0.035em; text-wrap: balance; max-width: 14ch; }
+.hero-foot { display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: end; margin-top: 56px; padding-bottom: 64px; }
+.hero-sub { font-size: 20px; max-width: 46ch; color: var(--ink-soft); text-wrap: pretty; }
+.hero-actions { display: flex; gap: 12px; align-items: center; }
+.scroll-hint { position: absolute; left: 40px; bottom: 22px; display: flex; align-items: center; gap: 10px; color: var(--ink-soft); }
+.scroll-hint .sh-line { width: 44px; height: 1px; background: var(--ink-soft); transform-origin: left; }
+
+.btn { display: inline-flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; padding: 16px 28px; border: 1px solid var(--ink); cursor: pointer; transition: background 0.2s, color 0.2s, border-color 0.2s; background: transparent; color: var(--ink); white-space: nowrap; }
+.btn-solid { background: var(--ink); color: var(--paper); }
+.btn-solid:hover { background: var(--accent); border-color: var(--accent); }
+.btn-ghost:hover { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.magnet { display: inline-block; }
+
+/* ---------- ticker ---------- */
+.ticker { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); overflow: hidden; padding: 18px 0; white-space: nowrap; }
+.ticker-track { display: inline-flex; will-change: transform; }
+.ticker span { font-family: var(--mono); font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; padding: 0 22px; color: var(--ink-soft); }
+.ticker span i { font-style: normal; color: var(--accent); margin-left: 44px; }
+
+/* ---------- section shell ---------- */
+section { border-bottom: 1px solid var(--rule); }
+section[id] { scroll-margin-top: 64px; }
+.sec-head { display: flex; justify-content: space-between; align-items: baseline; gap: 24px; padding: 28px 0; border-bottom: 1px solid var(--rule); }
+.sec-head .label { color: var(--accent); white-space: nowrap; }
+.sec-title { font-weight: 900; font-size: clamp(34px, 4vw, 56px); letter-spacing: -0.03em; line-height: 1; text-align: right; }
+.sec-intro { padding: 44px 0 0; display: grid; grid-template-columns: 80px 1fr; gap: 40px; }
+.sec-intro p { font-size: clamp(19px, 1.7vw, 23px); line-height: 1.45; letter-spacing: -0.01em; font-weight: 500; max-width: 50ch; text-wrap: pretty; }
+
+/* ---------- 01 · the app, illustrated ---------- */
+.app-sec .wrap { padding-bottom: 72px; }
+.app { margin-top: 44px; border: 1px solid var(--ink); background: var(--paper); position: relative; }
+.app-bar { display: flex; align-items: center; gap: 18px; padding: 12px 18px; background: var(--ink); color: var(--paper); }
+.app-dots { display: inline-flex; gap: 7px; }
+.app-dots i { width: 9px; height: 9px; border: 1px solid color-mix(in srgb, var(--paper) 55%, transparent); display: block; }
+.app-bar .app-pr { margin-left: auto; color: color-mix(in srgb, var(--paper) 70%, transparent); }
+.app-body { display: grid; grid-template-columns: 1.2fr 1fr; }
+.app-diff { border-right: 1px solid var(--ink); min-width: 0; background: color-mix(in srgb, var(--ink) 3%, var(--paper)); }
+.app-file { display: flex; justify-content: space-between; gap: 16px; padding: 12px 18px; border-bottom: 1px solid color-mix(in srgb, var(--ink) 18%, transparent); color: var(--ink-soft); }
+.app-file b { color: var(--ink); font-weight: 500; }
+.app-conv { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 18px; border-bottom: 1px solid color-mix(in srgb, var(--ink) 18%, transparent); }
+.app-conv .tag { background: var(--paper); }
+.code { overflow-x: auto; padding: 10px 0 16px; font-family: var(--mono); font-size: 13px; line-height: 1.75; }
+.code .ln { display: grid; grid-template-columns: 48px 22px max-content; white-space: pre; position: relative; }
+.code .ln > span:first-child { color: color-mix(in srgb, var(--ink) 40%, transparent); text-align: right; padding-right: 14px; }
+.code .ln.add { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.code .ln.add > span:nth-child(2) { color: var(--accent); }
+.code .ln.hunk { color: color-mix(in srgb, var(--ink) 45%, transparent); background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.code .ln.hot::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); }
+.code .kw { color: var(--accent); font-weight: 500; }
+.app-cards { padding: 18px; display: grid; gap: 14px; align-content: start; }
+.app-cards-head { display: flex; justify-content: space-between; color: var(--ink-soft); }
+.app-card { border: 1px solid var(--ink); background: var(--paper); padding: 16px 18px 14px; display: grid; gap: 10px; }
+.app-card-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.chip { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 9px; border: 1px solid currentColor; }
+.chip.strategic { color: var(--accent); }
+.chip.tactical { color: #8a5a12; }
+.chip.clarity { color: #2e4f7a; }
+.chip.convention { color: #7a2e4f; }
+.app-card-where { font-family: var(--mono); font-size: 11px; color: var(--ink-soft); letter-spacing: 0.02em; }
+.app-card p { font-size: 15.5px; line-height: 1.45; text-wrap: pretty; }
+.app-card-actions { display: flex; gap: 6px; }
+.app-card-actions span { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 10px; border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent); }
+.app-card-actions span:first-child { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.app-caption { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--ink); }
+.app-caption > div { padding: 16px 18px; color: var(--ink-soft); }
+.app-caption > div + div { border-left: 1px solid color-mix(in srgb, var(--ink) 18%, transparent); }
+.app-caption b { color: var(--accent); font-weight: 500; margin-right: 8px; }
+.app-note { margin-top: 14px; color: var(--ink-soft); }
+
+.tag { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent); padding: 5px 10px; }
+
+/* ---------- 02 · positioning rows ---------- */
+.pos-row { display: grid; grid-template-columns: 80px 1.1fr 1fr; gap: 40px; align-items: center; padding: 52px 0; border-bottom: 1px solid var(--rule); position: relative; overflow: hidden; isolation: isolate; }
+.pos-row::before { content: ""; position: absolute; inset: 0; background: var(--accent-soft); transform: scaleY(0); transform-origin: bottom; transition: transform 0.4s var(--ease); z-index: -1; }
+.pos-row:hover::before { transform: scaleY(1); transform-origin: top; }
+.pos-row:last-child { border-bottom: none; }
+.pos-row .idx { font-family: var(--mono); font-size: 14px; color: var(--ink-soft); }
+.pos-row h3 { font-weight: 900; font-size: clamp(28px, 3.2vw, 46px); letter-spacing: -0.03em; line-height: 1; transition: color 0.2s; }
+.pos-row:hover h3 { color: var(--accent); }
+.pos-row p { color: var(--ink-soft); max-width: 46ch; font-size: 16px; text-wrap: pretty; }
+.pos-row .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+
+/* ---------- 03 · restraint / limits ---------- */
+.lim-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 80px; padding: 72px 0; }
+.lim-grid .lede { font-size: clamp(21px, 2vw, 27px); line-height: 1.45; letter-spacing: -0.01em; font-weight: 500; text-wrap: pretty; }
+.lim-grid .lede em { font-style: normal; color: var(--accent); }
+.lim-more { margin-top: 28px; color: var(--ink-soft); max-width: 56ch; text-wrap: pretty; }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border: 1px solid var(--rule); align-self: start; }
+.stat { background: var(--paper); padding: 32px 28px 36px; }
+.stat .val { font-weight: 900; font-size: clamp(48px, 4.8vw, 72px); letter-spacing: -0.04em; line-height: 1; }
+.stat .val sup { font-size: 0.4em; color: var(--accent); vertical-align: super; margin-left: 2px; }
+.stat .key { margin-top: 12px; color: var(--ink-soft); }
+
+/* ---------- 04 · the session: horizontal pinned track ---------- */
+.stack-sec { position: relative; }
+.hscroll { overflow: hidden; }
+.hscroll-track { display: flex; align-items: stretch; gap: 1px; background: var(--rule); padding: 1px 0 0; width: max-content; }
+.hcard { flex: 0 0 clamp(280px, 28vw, 400px); background: var(--paper); padding: 40px 36px 44px; display: flex; flex-direction: column; min-height: max(400px, calc(100vh - 180px)); }
+.hcard .hc-tag { color: var(--accent); }
+.hcard .hc-n { font-weight: 900; font-size: clamp(96px, 10vw, 160px); line-height: 0.82; letter-spacing: -0.05em; margin-top: 18px; color: transparent; -webkit-text-stroke: 1.5px color-mix(in srgb, var(--ink) 30%, transparent); user-select: none; transition: -webkit-text-stroke 0.3s; }
+.hcard:hover .hc-n { -webkit-text-stroke: 1.5px var(--accent); }
+.hcard h3 { font-weight: 900; font-size: clamp(28px, 2.6vw, 38px); letter-spacing: -0.03em; line-height: 1.02; margin: auto 0 14px; }
+.hcard p { color: var(--ink-soft); font-size: 15.5px; text-wrap: pretty; }
+.hcard .hc-path { margin-top: 18px; padding-top: 14px; border-top: 1px solid color-mix(in srgb, var(--ink) 18%, transparent); font-family: var(--mono); font-size: 12px; color: var(--ink-soft); word-break: break-word; }
+.hcard-end { justify-content: center; gap: 28px; background: var(--ink); color: var(--paper); }
+.hcard-end h3 { margin: 0; font-size: clamp(34px, 3.2vw, 48px); }
+.hcard-end .btn { border-color: var(--paper); background: var(--paper); color: var(--ink); align-self: start; }
+.hcard-end .btn:hover { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+.hscroll-rail { height: 2px; background: color-mix(in srgb, var(--ink) 14%, transparent); }
+.hscroll-rail span { display: block; height: 100%; width: 100%; background: var(--accent); transform: scaleX(0); transform-origin: left; }
+
+/* ---------- 05 · card tags (spotlight grid) ---------- */
+.svc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--rule); border-top: 1px solid var(--rule); }
+.svc { background: var(--paper); padding: 48px 44px 56px; position: relative; overflow: hidden; --mx: 50%; --my: 50%; }
+.svc::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at var(--mx) var(--my), rgba(14, 122, 78, 0.20), transparent 80%); opacity: 0; transition: opacity 0.35s ease; }
+.svc:hover::before { opacity: 0.6; }
+.svc .num { font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: 0.08em; text-transform: uppercase; position: relative; }
+.svc h3 { font-weight: 700; font-size: 26px; letter-spacing: -0.02em; margin: 64px 0 12px; position: relative; }
+.svc p { color: var(--ink-soft); max-width: 42ch; text-wrap: pretty; position: relative; }
+.svc .ask { margin-top: 18px; font-size: 15px; color: var(--ink); position: relative; max-width: 42ch; padding-left: 14px; border-left: 2px solid var(--accent); }
+.svc .ghost { position: absolute; right: -8px; top: 6px; font-weight: 900; font-size: 120px; line-height: 1; letter-spacing: -0.04em; color: transparent; -webkit-text-stroke: 1px color-mix(in srgb, var(--ink) 18%, transparent); user-select: none; pointer-events: none; transition: -webkit-text-stroke 0.35s, transform 0.5s var(--ease); }
+.svc:hover .ghost { -webkit-text-stroke: 1px var(--accent); transform: translate(-6px, 4px); }
+
+/* ---------- ink panel ---------- */
+.ink-panel { position: relative; background: var(--ink); color: var(--paper); overflow: hidden; isolation: isolate; }
+.ink-fx { position: absolute; inset: 0; z-index: 0; opacity: 0; pointer-events: none; -webkit-mask-image: radial-gradient(120% 100% at 50% 45%, #000 35%, transparent 100%); mask-image: radial-gradient(120% 100% at 50% 45%, #000 35%, transparent 100%); }
+.ink-veil { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: radial-gradient(90% 70% at 50% 50%, color-mix(in srgb, var(--ink) 55%, transparent) 0%, var(--ink) 85%), repeating-linear-gradient(0deg, transparent 0 3px, color-mix(in srgb, #000 22%, transparent) 3px 4px); opacity: 0.86; }
+.ink-inner { position: relative; z-index: 2; }
+.ink-panel ::selection { background: var(--paper); color: var(--ink); }
+.ink-wrap { padding-top: 120px; padding-bottom: 120px; }
+.ink-label { color: var(--accent); }
+.ink-title { font-weight: 900; font-size: clamp(44px, 7vw, 108px); letter-spacing: -0.04em; line-height: 0.96; margin: 24px 0 28px; text-wrap: balance; max-width: 15ch; }
+.ink-sub { font-size: clamp(17px, 1.5vw, 21px); max-width: 60ch; color: #b9c0bb; text-wrap: pretty; }
+.flow { margin-top: 64px; border-top: 1px solid color-mix(in srgb, var(--paper) 22%, transparent); }
+.flow-item { position: relative; overflow: hidden; border-bottom: 1px solid color-mix(in srgb, var(--paper) 22%, transparent); }
+.flow-link { display: flex; align-items: baseline; gap: 24px; padding: 26px 0; font-size: clamp(24px, 3.6vw, 44px); font-weight: 900; letter-spacing: -0.02em; line-height: 1.05; }
+.flow-link .mono { color: var(--accent); flex: 0 0 auto; }
+.flow-marquee { position: absolute; inset: 0; background: var(--accent); color: var(--paper); transform: translateY(101%); pointer-events: none; display: flex; align-items: center; overflow: hidden; }
+.flow-marquee-inner { transform: translateY(-101%); display: flex; }
+.flow-track { display: inline-flex; white-space: nowrap; animation: flow-x 18s linear infinite; }
+.flow-track span { font-family: var(--mono); font-size: clamp(13px, 1.4vw, 17px); letter-spacing: 0.1em; font-weight: 500; text-transform: uppercase; padding: 0 28px; }
+.flow-track span::after { content: "·"; margin-left: 56px; }
+@keyframes flow-x { to { transform: translateX(-50%); } }
+
+/* ---------- 06 · learning rows ---------- */
+.prin-list { border-top: 1px solid var(--rule); }
+.prin { display: grid; grid-template-columns: 80px 1fr 1.2fr; gap: 40px; align-items: baseline; padding: 36px 0; border-bottom: 1px solid var(--rule); }
+.prin:last-child { border-bottom: none; }
+.prin .idx { font-family: var(--mono); font-size: 14px; color: var(--accent); }
+.prin h3 { font-weight: 900; font-size: clamp(26px, 3vw, 42px); letter-spacing: -0.03em; line-height: 1.02; }
+.prin h3 small { display: block; margin-top: 10px; font-family: var(--mono); font-weight: 400; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); }
+.prin p { color: var(--ink-soft); max-width: 52ch; text-wrap: pretty; }
+
+/* ---------- 07 · send to github ---------- */
+.eng-list { border-top: 1px solid var(--rule); }
+.eng { display: grid; grid-template-columns: 80px 1fr 1.4fr; gap: 40px; align-items: start; padding: 40px 0; border-bottom: 1px solid var(--rule); }
+.eng-key { color: var(--accent); padding-top: 6px; }
+.eng-main h3 code { background: none; padding: 0; font-size: 0.82em; color: var(--accent); font-weight: 500; }
+.eng-main h3 { font-weight: 900; font-size: clamp(24px, 2.6vw, 36px); letter-spacing: -0.03em; line-height: 1.02; }
+.eng-shape { display: block; margin-top: 10px; color: var(--ink-soft); }
+.eng-body p { color: var(--ink-soft); max-width: 54ch; text-wrap: pretty; }
+.eng-fit { margin-top: 12px; color: var(--ink) !important; font-weight: 500; }
+.eng-floor { padding: 44px 0 72px; display: grid; gap: 12px; }
+.eng-floor-num { font-size: clamp(22px, 2.4vw, 32px); letter-spacing: -0.02em; line-height: 1.25; max-width: 40ch; }
+.eng-floor-num strong { font-weight: 900; color: var(--accent); }
+.eng-floor-sub { color: var(--ink-soft); max-width: 64ch; text-wrap: pretty; }
+.text-link { display: inline-flex; gap: 10px; align-items: center; color: var(--ink-soft); margin-top: 8px; }
+.text-link:hover { color: var(--accent); }
+.text-link span { transition: transform 0.25s; display: inline-block; }
+.text-link:hover span { transform: translateX(5px); }
+
+/* ---------- 08 · providers ---------- */
+.proc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--rule); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.proc { background: var(--paper); padding: 40px 32px 52px; }
+.proc .big { font-weight: 900; font-size: 88px; line-height: 1; letter-spacing: -0.04em; color: transparent; -webkit-text-stroke: 1.5px var(--ink); transition: color 0.25s, -webkit-text-stroke 0.25s; }
+.proc:hover .big { color: var(--accent); -webkit-text-stroke: 1.5px var(--accent); }
+.proc h3 { font-weight: 700; font-size: 22px; margin: 40px 0 6px; letter-spacing: -0.01em; }
+.proc .proc-shape { color: var(--accent); display: block; margin-bottom: 12px; }
+.proc p { color: var(--ink-soft); font-size: 15.5px; text-wrap: pretty; }
+.proc-floor { padding: 36px 0 72px; display: grid; grid-template-columns: 80px 1fr; gap: 40px; }
+.proc-floor p { font-size: clamp(20px, 2vw, 26px); letter-spacing: -0.015em; line-height: 1.3; max-width: 44ch; }
+.proc-floor p strong { font-weight: 900; }
+
+/* ---------- faq ---------- */
+.faq-list { border-top: 1px solid var(--rule); margin-bottom: 72px; }
+details { border-bottom: 1px solid var(--rule); }
+summary { list-style: none; cursor: pointer; padding: 28px 0; display: flex; justify-content: space-between; align-items: center; gap: 32px; font-weight: 700; font-size: 21px; letter-spacing: -0.01em; }
+summary::-webkit-details-marker { display: none; }
+summary .plus { font-family: var(--mono); font-size: 22px; color: var(--accent); transition: transform 0.3s var(--ease); flex-shrink: 0; }
+details[open] summary .plus { transform: rotate(45deg); }
+details .answer { padding: 0 0 30px; color: var(--ink-soft); max-width: 68ch; text-wrap: pretty; }
+summary:hover { color: var(--accent); }
+
+/* ---------- access ---------- */
+.contact { padding: 96px 0 110px; }
+.contact-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 80px; align-items: start; }
+.contact h2 { font-weight: 900; font-size: clamp(44px, 5.4vw, 84px); letter-spacing: -0.035em; line-height: 0.98; text-wrap: balance; margin-top: 24px; }
+.contact .sub { margin-top: 28px; color: var(--ink-soft); font-size: 18px; max-width: 44ch; text-wrap: pretty; }
+.contact .hero-actions { margin-top: 36px; flex-wrap: wrap; }
+.term { border: 1px solid var(--ink); background: var(--ink); color: var(--paper); }
+.term-bar { display: flex; justify-content: space-between; gap: 16px; padding: 12px 18px; border-bottom: 1px solid color-mix(in srgb, var(--paper) 18%, transparent); color: color-mix(in srgb, var(--paper) 65%, transparent); }
+.term pre { font-family: var(--mono); font-size: 14px; line-height: 1.9; padding: 20px 18px 24px; overflow-x: auto; }
+.term pre .p { color: var(--accent); user-select: none; }
+.term pre .c { color: color-mix(in srgb, var(--paper) 50%, transparent); }
+.term-req { border-top: 1px solid color-mix(in srgb, var(--paper) 18%, transparent); display: grid; grid-template-columns: 1fr 1fr; }
+.term-req > div { padding: 14px 18px; color: color-mix(in srgb, var(--paper) 75%, transparent); font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em; }
+.term-req > div:nth-child(even) { border-left: 1px solid color-mix(in srgb, var(--paper) 18%, transparent); }
+.term-req > div:nth-child(n+3) { border-top: 1px solid color-mix(in srgb, var(--paper) 18%, transparent); }
+.term-req b { color: var(--accent); font-weight: 500; margin-right: 6px; }
+
+/* ---------- footer ---------- */
+footer { overflow: hidden; }
+.foot-bar { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 24px 40px; max-width: 1320px; margin: 0 auto; color: var(--ink-soft); }
+.foot-bar .links { display: flex; gap: 28px; flex-wrap: wrap; }
+.foot-bar a:hover { color: var(--accent); }
+.foot-word { font-weight: 900; font-size: clamp(48px, 11.8vw, 200px); letter-spacing: -0.04em; line-height: 0.78; text-align: center; white-space: nowrap; color: transparent; -webkit-text-stroke: 1.5px color-mix(in srgb, var(--ink) 36%, transparent); user-select: none; transform: translateY(0.12em); }
+.foot-word .char { display: inline-block; }
+
+/* ---------- custom cursor ---------- */
+.cursor-dot, .cursor-ring { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 999; border-radius: 50%; opacity: 0; }
+.cursor-dot { width: 6px; height: 6px; background: var(--accent); transform: translate(-50%, -50%); }
+.cursor-ring { width: 30px; height: 30px; border: 1px solid color-mix(in srgb, var(--ink) 45%, transparent); transform: translate(-50%, -50%); transition: width 0.25s, height 0.25s, border-color 0.25s, background 0.25s; }
+.cursor-ring.is-link { width: 48px; height: 48px; border-color: var(--accent); }
+.cursor-ring.is-drag { width: 66px; height: 66px; border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.cursor-ring.on-ink { border-color: color-mix(in srgb, var(--paper) 55%, transparent); }
+@media (pointer: coarse) { .cursor-dot, .cursor-ring { display: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .flow-track { animation: none; }
+  .pos-row::before, .nav-links a.mono::after { transition: none; }
 }
 
-/* — close (paper, a caption rule above; the primary is the system's solid
-   accent action — everything else stays a line drawing) — */
-.close { padding: calc(2.5 * var(--leading)) 0 calc(2 * var(--leading)); }
-.close h3 { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  font-size: 24px; line-height: var(--leading); letter-spacing: 0.02em; text-transform: uppercase;
-  margin: 0; text-box: trim-both cap alphabetic; }
-.close .sub { font-size: 15px; line-height: var(--leading);
-  color: color-mix(in srgb, var(--color-text) 78%, transparent);
-  margin: calc(var(--leading) - 1cap) 0 0; max-width: var(--measure); text-box: trim-both cap alphabetic; }
-.signup { display: flex; gap: var(--space-3); align-items: stretch; max-width: 480px;
-  margin-top: var(--leading); }
-.signup .input { flex: 1; }
-.signup .input, .signup .btn { min-height: 36px; } /* one control height floor; the row
-  stretches, so whichever of the pair is taller sets both and they read as one row */
-footer { padding: calc(2 * var(--leading)) 0; font-size: 13px; line-height: var(--leading);
-  color: color-mix(in srgb, var(--color-text) 70%, transparent); /* 5.8:1 — see .quote figcaption */ }
-
-/* — responsive collapse — */
-@media (max-width: 880px) {
-  .cells { grid-template-columns: 1fr; gap: calc(var(--leading) + 16px); } /* stacked
-     frames: both cells' crosses overhang 7px of ink into the gap, so the
-     clamp's 20px floor left 6px cross-to-cross — a 40px gap keeps a full
-     unit of air (26px) between the facing crosses */
+@media (max-width: 1100px) {
+  .nav-links { gap: 22px; }
+  .nav-logo .by { display: none; }
 }
-@media (max-width: 720px) {
-  .hero { padding-top: calc(2.5 * var(--leading)); }
-  /* the sheet re-stacks: the title block drops its register cells to a
-     second ruled row, and each table row becomes its own small plate —
-     № and property on the register line, the value beneath, the remark
-     last. (Linearizing the table trades its grid semantics for reading
-     order; the row order is unchanged.) */
-  .tb-title { flex-basis: 100%; border-bottom: 1px solid var(--color-divider); }
-  .title-block > .tb-cell { padding-inline: var(--half); flex: 1 0 auto; } /* beats the
-     base span padding's specificity; the cells flex to close the register
-     row against the frame. (All title-block children are spans, so
-     :first-of-type can never name a register cell — the sibling selector
-     below is the one that works) */
-  .tb-title + .tb-cell { border-left: 0; padding-left: var(--leading); } /* first register
-     cell: its hairline would double the plate's own left border */
-  .spec thead { position: absolute; width: 1px; height: 1px; overflow: hidden;
-    clip-path: inset(50%); white-space: nowrap; } /* visually hidden, not
-     display:none — the stacked rows carry their own register (№ + property),
-     so the column heads are redundant on screen, but they stay in the
-     accessibility tree for readers that still expose the table semantics */
-  .spec, .spec tbody, .spec td { display: block; }
-  .spec tr { display: grid; grid-template-columns: max-content 1fr;
-    column-gap: var(--half); row-gap: var(--half); align-items: baseline;
-    padding: var(--leading);
-    border-bottom: 1px solid color-mix(in srgb, var(--color-text) 8%, transparent); }
-  .spec tr:last-child { border-bottom: 0; }
-  .spec th, .spec td { padding: 0; border: 0; }
-  .spec th:first-child, .spec td:first-child { padding-left: 0; } /* matches the
-     desktop rule's specificity, or the № keeps its 24px inset and floats
-     off the stacked rows' shared axis */
-  .spec .s-num { grid-column: 1; }
-  .spec .s-prop { grid-column: 2; }
-  .spec .s-val, .spec .s-rem { grid-column: 1 / -1; }
-  .spec .s-blank { display: none; } /* the desktop table's "no remark" dash
-     would dangle as a stray mark in the stacked row */
-  .split { grid-template-columns: 1fr; }
-  .split-figure { order: -1; }
+@media (max-width: 900px) {
+  .wrap { padding: 0 20px; }
+  .nav { padding: 0 20px; }
+  .nav-links a.mono, .nav-links .nav-cta { display: none; }
+  .menu-btn { display: grid; }
+  .nav-logo .by { display: inline; }
+  .hero { padding-top: 128px; }
+  .hero-meta { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .hero-geo { text-align: left; }
+  .hero-foot, .pos-row, .lim-grid, .contact-grid, .prin, .sec-intro, .proc-floor { grid-template-columns: 1fr; gap: 24px; }
+  .hero-actions { flex-wrap: wrap; }
+  .sec-head { flex-direction: column; gap: 10px; }
+  .sec-title { text-align: left; }
+  .app-body { grid-template-columns: 1fr; }
+  .app-diff { border-right: none; border-bottom: 1px solid var(--ink); }
+  .app-caption { grid-template-columns: 1fr; }
+  .app-caption > div + div { border-left: none; border-top: 1px solid color-mix(in srgb, var(--ink) 18%, transparent); }
+  .app-bar .app-name { display: none; }
+  .svc-grid { grid-template-columns: 1fr; }
+  .svc { padding: 40px 24px 44px; }
+  .eng { grid-template-columns: 1fr; gap: 16px; }
+  .eng-key { padding-top: 0; }
+  .proc-grid { grid-template-columns: 1fr; }
+  .scroll-hint { display: none; }
+  .pos-row { padding: 40px 0; }
+  /* No pinning below 700px: the track becomes a native swipe carousel that
+     scrolls inside itself instead of overflowing the page. */
+  .hscroll { overflow-x: auto; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+  .hcard { min-height: max(360px, calc(100vh - 280px)); scroll-snap-align: start; flex-basis: 80vw; padding: 32px 24px 36px; }
+  .ink-wrap { padding-top: 80px; padding-bottom: 80px; }
+  .flow-link { gap: 16px; padding: 22px 0; }
+  .contact { padding: 72px 0 80px; }
+  .term-req { grid-template-columns: 1fr; }
+  .term-req > div:nth-child(even) { border-left: none; }
+  .term-req > div:nth-child(n+2) { border-top: 1px solid color-mix(in srgb, var(--paper) 18%, transparent); }
+  .foot-bar { padding: 24px 20px; flex-direction: column; align-items: flex-start; }
+  .curtain.is-armed { padding: 20px; }
+  .curtain-bar { left: 20px; right: 20px; bottom: 16px; }
 }
-@media (max-width: 360px) {
-  /* the narrowest screens: one register row no longer fits, so the title
-     block re-forms as its own grid — doc and revision share a ruled row,
-     the sheet count takes the next — and a wrap can never leave a cell
-     floating without a rule */
-  .title-block { display: grid; grid-template-columns: 1fr 1fr; }
-  .tb-title { grid-column: 1 / -1; border-bottom: 0; } /* the rules move to the cells' tops */
-  .title-block > .tb-cell { border-left: 0; border-top: 1px solid var(--color-divider);
-    padding-left: var(--leading); }
-  .tb-title + .tb-cell + .tb-cell { border-left: 1px solid var(--color-divider);
-    padding-left: var(--half); } /* the revision keeps its divider against the doc cell */
-  .tb-cell:last-child { grid-column: 1 / -1; }
+@media (max-width: 480px) {
+  .nav-logo .by { display: none; }
+  .stat { padding: 24px 18px 28px; }
+  .hero-actions .btn { padding: 14px 20px; }
 }
-
-/* Review aid: the 24px rhythm drawn as hairlines — debug chrome, toggled by
-   ?baselines or the B key, never part of the look. */
-body[data-baselines] { position: relative; }
-body[data-baselines]::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background:
-    repeating-linear-gradient(to bottom,
-      color-mix(in srgb, var(--color-accent) 35%, transparent) 0 1px,
-      transparent 1px var(--leading)),
-    repeating-linear-gradient(to bottom,
-      transparent 0 var(--half),
-      color-mix(in srgb, var(--color-accent) 16%, transparent) var(--half) calc(var(--half) + 1px),
-      transparent calc(var(--half) + 1px) var(--leading));
-}
-
-/* ——— MOTION LAYER (see motion.js for the motion laws) —————————————
-   Only opacity/transform are touched, so nothing here can move the 24px
-   lattice. Every rule is scoped to [data-motion="on"], which the head script
-   sets only when the visitor has NOT asked for reduced motion — and clears
-   again if the motion scripts fail to arrive, so the page can never be left
-   holding its content invisible behind a script that never loaded. */
-html.lenis, html.lenis body { height: auto; }
-html.lenis { scroll-behavior: auto; } /* the page's own smooth scroll double-eases
-   against Lenis's virtual scroll — one easing or the other, never both */
-
-[data-motion="on"] .hero .display .line,
-[data-motion="on"] .hero .sub,
-[data-motion="on"] .hero .row > *,
-[data-motion="on"] .kicker,
-[data-motion="on"] .stage,
-[data-motion="on"] .cell-frame > h2,
-[data-motion="on"] .cell-frame > p,
-[data-motion="on"] .split-title,
-[data-motion="on"] .split-copy .note,
-[data-motion="on"] .split-figure,
-[data-motion="on"] .quote blockquote,
-[data-motion="on"] .quote figcaption,
-[data-motion="on"] .close h3,
-[data-motion="on"] .close .sub,
-[data-motion="on"] .close .row,
-[data-motion="on"] .corner { visibility: hidden; opacity: 0; }
-
-[data-motion="on"] .caption-rule { transform: scaleX(0); transform-origin: left center; }
-[data-motion="on"] .btn { will-change: transform; }
-
-/* the read's own progress, drawn as this system draws everything: a 1px rule */
-.scroll-rail { position: fixed; inset: 0 0 auto 0; height: 1px; z-index: 50;
-  background: var(--color-accent); transform: scaleX(0); transform-origin: left center;
-  pointer-events: none; }
-
-/* the Vanta lattice sits UNDER the hero's text on a transparent ground, and
-   signs the same contract the registration crosses do — decorative marks
-   never eat a control's pointer events (a live canvas over the hero would
-   swallow both call-to-action clicks) */
-.hero { position: relative; }
-.hero > *:not(.vanta-host) { position: relative; z-index: 1; }
-.vanta-host { position: absolute; inset: calc(-1 * var(--leading)) calc(-1 * var(--edge));
-  z-index: 0; pointer-events: none; opacity: 0.26;
-  overflow: hidden;  /* the WebGL canvas sizes itself and would otherwise spill
-     its lattice down over the spec plate — the effect is hero furniture, and
-     it stops at the hero's edge */
-  /* the lattice is held to the upper right, off the display's counters and
-     clear of the sub-copy's measure: the page's one job here is to be read */
-  -webkit-mask-image: radial-gradient(85% 75% at 88% 26%, #000 0%, #000 28%, transparent 72%);
-  mask-image: radial-gradient(85% 75% at 88% 26%, #000 0%, #000 28%, transparent 72%);
-}
-@media (max-width: 880px) { .vanta-host { opacity: 0.16; } } /* below this width the
-   display wraps into the lattice's quadrant — hold it to a ghost */
-
-/* — the sheet index: the drawing set's own tab rail, standing in the right
-   margin outside the 1200px text block. It is real navigation, so unlike the
-   registration crosses it DOES take pointer events; it is furniture, so it
-   takes the system's 55%-ink convention until a sheet is current. Motion
-   here is opacity and transform only, with one deliberate exception: the tab
-   name's max-width. The rail is position: fixed and so out of flow entirely —
-   nothing it does can reach the page's 24px lattice, which is what law #1
-   actually protects. Below 1240px the margin that holds it stops existing and
-   the rail is gone. — */
-.sheet-index { position: fixed; right: 24px; top: 50%; transform: translateY(-50%);
-  z-index: 40; display: none; flex-direction: column; gap: var(--half);
-  padding: var(--half) 0; }
-@media (min-width: 1240px) { [data-motion="on"] .sheet-index { display: flex; } }
-.sheet-index a { display: flex; align-items: center; gap: 8px;
-  font-size: 13px; line-height: var(--half); letter-spacing: 0.08em; font-weight: 600;
-  font-feature-settings: "tnum" 1; text-decoration: none;
-  color: color-mix(in srgb, var(--color-text) 55%, transparent);
-  transition: color 0.25s ease; }
-.sheet-index a::before { content: ""; width: 14px; height: 1px; background: currentColor;
-  transform: scaleX(0.5); transform-origin: right center; transition: transform 0.25s ease; }
-.sheet-index a:hover, .sheet-index a:focus-visible { color: var(--color-accent-700); }
-.sheet-index a:hover::before, .sheet-index a:focus-visible::before { transform: scaleX(1); }
-.sheet-index a[aria-current="true"] { color: var(--color-accent-700); }
-.sheet-index a[aria-current="true"]::before { transform: scaleX(1); }
-/* the tab's name only appears on hover — the rail is a register, not a menu */
-.sheet-index .nm { max-width: 0; overflow: hidden; white-space: nowrap;
-  text-transform: uppercase; opacity: 0; transition: max-width 0.3s ease, opacity 0.25s ease; }
-.sheet-index a:hover .nm, .sheet-index a:focus-visible .nm { max-width: 18ch; opacity: 1; }
-
-/* — plotted frames: with motion on, the 1px frames on the spec plate and the
-   wireframe cells are not painted by the border but DRAWN by an SVG rect whose
-   dash offset runs to zero — a pen crossing the page. The CSS border keeps its
-   1px WIDTH and only loses its color: zeroing the border instead would shrink
-   every box by 2px per axis and shift the whole column, which is precisely the
-   layout write the oracle exists to catch. The overlay is inset -1px so it
-   covers the border box (an absolutely positioned child is otherwise laid out
-   against the padding box, and the stroke would land 1px inside the frame). — */
-[data-motion="on"] .plate, [data-motion="on"] .cell-frame { border-color: transparent; }
-.pen-frame { position: absolute; top: -1px; left: -1px;
-  /* an <svg> is a REPLACED element, so `inset: -1px` alone leaves it at its
-     300x150 intrinsic size instead of stretching it — the frame draws short.
-     100% here resolves against the padding box, which is the border box less
-     the 1px border on each side, so +2px is exactly the border box. */
-  width: calc(100% + 2px); height: calc(100% + 2px);
-  overflow: visible; pointer-events: none; }
-.pen-frame rect { fill: none; stroke: var(--color-divider); stroke-width: 1;
-  x: 0.5px; y: 0.5px; width: calc(100% - 1px); height: calc(100% - 1px);
-  vector-effect: non-scaling-stroke; }
-
-/* — the drafting cursor: two hairlines and a coordinate readout that track the
-   pointer across the whole page, the way a drawing board's rule does. Fine
-   pointers only — a touch device has no cursor to register, and the lines
-   would just be two stripes stuck where the last tap landed.
-
-   The readout is the reason this needs care: it changes its own text on every
-   frame, so it takes tabular figures AND a fixed ch width. Proportional
-   figures would let "1" and "8" resize the box sixty times a second, and a
-   box that resizes under a transform is a repaint storm and a visibly
-   twitching label. Fixed-position, pointer-events: none, out of flow — it
-   cannot reach the page's lattice. — */
-.crosshair { position: fixed; inset: 0; z-index: 30; pointer-events: none;
-  opacity: 0; transition: opacity 0.4s ease; }
-.crosshair.on { opacity: 1; }
-.crosshair i { position: absolute; background: var(--color-accent);
-  opacity: 0.28; display: block; }
-.crosshair .h { left: 0; top: 0; width: 100%; height: 1px; will-change: transform; }
-.crosshair .v { left: 0; top: 0; width: 1px; height: 100%; will-change: transform; }
-/* the readout rides the intersection, one 24px unit clear of both rules */
-.crosshair .read { position: absolute; left: 0; top: 0; will-change: transform;
-  padding-left: var(--half); padding-top: 4px;
-  font-family: var(--font-body, inherit);
-  font-size: 11px; line-height: var(--half); letter-spacing: 0.12em;
-  text-transform: uppercase; font-weight: 600;
-  font-feature-settings: "tnum" 1; font-variant-numeric: tabular-nums;
-  width: 34ch;  /* pinned, and wide enough for the longest form the readout
-     takes (position plus a dimension call-out): the text is rewritten every
-     frame and must never resize its own box while doing it */
-  color: var(--color-accent-700); white-space: nowrap; }
-/* the edge ticks — where the rules meet the page edge, the drawing marks it */
-.crosshair .tick { position: absolute; background: var(--color-accent); opacity: 0.55; }
-.crosshair .tick.tx { top: 0; width: 1px; height: 7px; will-change: transform; }
-.crosshair .tick.bx { bottom: 0; width: 1px; height: 7px; will-change: transform; }
-.crosshair .tick.ly { left: 0; height: 1px; width: 7px; will-change: transform; }
-.crosshair .tick.ry { right: 0; height: 1px; width: 7px; will-change: transform; }
-@media (pointer: coarse) { .crosshair { display: none; } }
-
-/* — the plot: before the sheet set is readable, it is drawn. A paper-colored
-   plate over the viewport, its four registration crosses set, a rule swept
-   down the page and a plot counter running to 100. Roughly 1.7s, once per
-   session, and abandoned on any click or key.
-
-   An overlay that outlives its script makes the page unreachable, so it is
-   armed with the same unconditional timer the head script uses: the element
-   is removed after 4s whether or not the sequence ever finished. — */
-.plot-boot { position: fixed; inset: 0; z-index: 100; background: var(--color-bg);
-  display: grid; place-items: center; }
-.plot-boot .pb-frame { position: relative; width: min(560px, 74vw); height: 1px; }
-.plot-boot .corner { position: absolute; width: 15px; height: 15px;
-  color: color-mix(in srgb, var(--color-text) 55%, transparent); }
-.plot-boot .corner::before { content: ""; position: absolute; left: 7px; top: 0; width: 1px; height: 100%; background: currentColor; }
-.plot-boot .corner::after { content: ""; position: absolute; top: 7px; left: 0; width: 100%; height: 1px; background: currentColor; }
-.plot-boot .corner.tl { top: -8px; left: -8px; } .plot-boot .corner.tr { top: -8px; right: -8px; }
-.plot-boot .corner.bl { bottom: -8px; left: -8px; } .plot-boot .corner.br { bottom: -8px; right: -8px; }
-.plot-boot .pb-rule { position: absolute; inset: 0; background: var(--color-accent);
-  transform: scaleX(0); transform-origin: left center; }
-.plot-boot .pb-meta { position: absolute; left: 0; right: 0; top: calc(-1 * var(--leading));
-  display: flex; justify-content: space-between; gap: var(--leading);
-  font-size: 11px; line-height: var(--half); letter-spacing: 0.12em;
-  text-transform: uppercase; font-weight: 600;
-  font-feature-settings: "tnum" 1; font-variant-numeric: tabular-nums;
-  color: color-mix(in srgb, var(--color-text) 70%, transparent); }
-.plot-boot .pb-pct { color: var(--color-accent-700); width: 16ch; text-align: right;
-  white-space: nowrap; } /* 13ch fitted the characters but not the 0.12em
-  tracking, and the counter wrapped onto a second line mid-count */
-.plot-boot .pb-skip { position: absolute; left: 0; top: var(--leading);
-  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600;
-  color: color-mix(in srgb, var(--color-text) 45%, transparent); opacity: 0; }
-
-/* — sheet 03: the pipeline, read left to right the way a drawing set is.
-   The strip is horizontal in BOTH modes and exactly the same height in both,
-   which is what keeps the oracle's arithmetic clean: with motion on the pin
-   adds its distance and nothing else, and with motion off the strip is a
-   plain native horizontal scroll. Nothing about the content depends on the
-   animation — the pin only changes what drives the strip sideways. — */
-.works { padding: calc(3 * var(--leading)) 0 calc(2.5 * var(--leading)); }
-.works > .caption-rule { margin-bottom: calc(var(--leading) + 8px); } /* clears the
-   stage crosses' 8px overhang, as .features' rule does */
-.strip { overflow-x: auto; overscroll-behavior-x: contain;
-  /* bleed the strip to the page edge while keeping the first stage on the
-     wrap's text axis */
-  margin-inline: calc(-1 * var(--edge)); padding-inline: var(--edge);
-  scrollbar-width: none; }
-.strip::-webkit-scrollbar { display: none; }
-[data-motion="on"] .strip { overflow: hidden; } /* the pin drives it instead */
-.track { display: flex; gap: clamp(20px, 3vw, 48px); width: max-content;
-  list-style: none; margin: 0; padding: 0; }
-.stage { position: relative; width: clamp(260px, 26vw, 330px);
-  border: 1px solid var(--color-divider); padding: var(--leading);
-  display: flex; flex-direction: column; }
-.stage .st-num { font-size: 13px; line-height: var(--half); letter-spacing: 0.08em;
-  font-weight: 600; color: var(--color-accent-700); font-feature-settings: "tnum" 1;
-  margin-bottom: var(--half); }
-.stage h2 { font-family: var(--font-heading); font-weight: var(--font-heading-weight);
-  font-size: 22px; line-height: var(--leading); letter-spacing: 0.02em; text-transform: uppercase;
-  margin: 0; text-box: trim-both cap alphabetic; }
-.stage p { font-size: 15px; line-height: var(--leading); margin: calc(var(--leading) - 1cap) 0 0;
-  color: color-mix(in srgb, var(--color-text) 78%, transparent); text-box: trim-both cap alphabetic;
-  flex: 1; }
-/* the module path is the drawing's part number — set in the system's mono at
-   the furniture scale, seated on its own rule */
-.stage .st-mod { display: block; margin-top: var(--leading);
-  padding-top: var(--half); border-top: 1px solid var(--color-divider);
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: 12px; line-height: var(--half);
-  color: color-mix(in srgb, var(--color-text) 70%, transparent);
-  overflow-wrap: anywhere; }
-/* the flow arrows between stages — a drawn connector, not a glyph */
-.stage:not(:last-child)::after { content: ""; position: absolute;
-  top: calc(var(--leading) + 6px); left: 100%; width: clamp(20px, 3vw, 48px);
-  height: 1px; background: var(--color-divider); }
-.stage:not(:last-child)::before { content: ""; position: absolute;
-  top: calc(var(--leading) + 3px); left: calc(100% + clamp(20px, 3vw, 48px) - 7px);
-  width: 7px; height: 7px; border-top: 1px solid var(--color-divider);
-  border-right: 1px solid var(--color-divider); transform: rotate(45deg) translateY(-0.5px);
-  transform-origin: center; }
-
-/* the close section's contour field: Vanta TOPOLOGY is p5-based and has no
-   transparent-ground path the way NET does, so it paints an opaque slab of
-   the paper token and the lines sit on it. Same reasoning as the hero's
-   lattice otherwise — behind the content, masked at the edges, decorative
-   and so pointer-events: none. */
-.close { position: relative; }
-.close > *:not(.topo-host) { position: relative; z-index: 1; }
-.topo-host { position: absolute; inset: calc(-1 * var(--leading)) calc(-1 * var(--edge));
-  z-index: 0; pointer-events: none; opacity: 0.34; overflow: hidden;
-  /* fade at both ends AND at the left, where the contours bunch hardest and
-     would otherwise crowd the kicker's axis */
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 72%, transparent),
-    linear-gradient(to right, transparent, #000 18%);
-  mask-image: linear-gradient(to bottom, transparent, #000 28%, #000 72%, transparent),
-    linear-gradient(to right, transparent, #000 18%);
-  -webkit-mask-composite: source-in; mask-composite: intersect; }
-@media (max-width: 880px) { .topo-host { opacity: 0.2; } }
 </style>
 </head>
 <body>
-<nav class="nav">
-  <span class="nav-brand">Review Coach</span>
-  <a href="#coaching" aria-current="location">How it coaches</a>
-  <a href="#practice">In practice</a>
-  <a href="#run">Run it</a>
-  <a class="btn btn-primary" href="https://github.com/RonanTalboom/review-coach">View on GitHub</a>
-</nav>
-<div class="wrap">
 
-  <section class="hero">
-    <h1 class="display"><span class="line">Not another comment bot.</span> <span class="line">A coach for the reviewer.</span></h1>
-    <p class="sub">Review Coach is a desktop app that pulls a GitHub pull request and guides your thinking as you review it — at most seven question-shaped prompts per PR, grounded in the repo's own conventions. You write the review; it sharpens your judgment.</p>
-    <div class="row">
-      <a class="btn btn-primary" href="https://github.com/RonanTalboom/review-coach">View on GitHub</a>
-      <a class="btn btn-ghost" href="#coaching">Read how it coaches</a>
-    </div>
-  </section>
-
-  <section class="sheet" id="sheet" data-sheet="01" data-sheet-name="Operating limits" aria-label="Review Coach — operating limits">
-    <div class="plate">
-      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
-      <header class="title-block">
-        <span class="tb-title">Review Coach — operating limits</span>
-        <span class="tb-cell">RC-01</span>
-        <span class="tb-cell">Rev A</span>
-        <span class="tb-cell">Sheet 01 of 05</span>
-      </header>
-      <table class="table spec">
-        <colgroup><col class="c-num"><col class="c-prop"><col class="c-val"><col class="c-rem"></colgroup>
-        <thead>
-          <tr><th scope="col">No.</th><th scope="col">Property</th><th scope="col">Value</th><th scope="col">Remark</th></tr>
-        </thead>
-        <tbody>
-          <tr><td class="s-num">01</td><td class="s-prop">Coaching cards per PR</td><td class="s-val">≤ 7</td><td class="s-rem">Sparsity is the product</td></tr>
-          <tr><td class="s-num">02</td><td class="s-prop">Comments posted for you</td><td class="s-val">0</td><td class="s-rem">You accept, edit, or dismiss each card</td></tr>
-          <tr><td class="s-num">03</td><td class="s-prop">External style rules</td><td class="s-val">0</td><td class="s-rem">Conventions are inferred from the repo itself</td></tr>
-          <tr><td class="s-num">04</td><td class="s-prop">Coaching providers</td><td class="s-val">2</td><td class="s-rem">Claude API, or LM Studio fully offline</td></tr>
-        </tbody>
-      </table>
-      <p class="sheet-note">Limits hold by design; the card cap does not lift with PR size.</p>
-    </div>
-  </section>
-
-  <!-- the drawing set continues: sections below number themselves with the
-       deck's own kicker grammar — the spec plate above is sheet 01 -->
-  <section class="features" id="coaching" data-sheet="02" data-sheet-name="How it coaches">
-    <span class="kicker">02 · How it coaches</span>
-    <hr class="caption-rule" />
-    <div class="cells">
-      <div class="cell-frame">
-        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
-        <h2>The repo is the style guide</h2>
-        <p>No external ruleset to configure. Review Coach reads the whole codebase, infers its de-facto naming conventions per kind, and flags only where the PR drifts from what the code already does.</p>
-      </div>
-      <div class="cell-frame">
-        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
-        <h2>Tactical vs strategic</h2>
-        <p>Each change is framed in Ousterhout's terms: is it adding a special case or removing one? Deepening a module, or pushing complexity onto its callers? Questions, not verdicts.</p>
-      </div>
-      <div class="cell-frame">
-        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
-        <h2>You write the review</h2>
-        <p>Every prompt arrives as a card you can accept, edit, or dismiss. Accepted notes export as a clean markdown review — nothing is posted on your behalf, ever.</p>
-      </div>
-    </div>
-  </section>
-
-
-  <!-- sheet 03: the pipeline as a drawing set read left to right. Every stage
-       and every module path here is taken from the app's own README — this is
-       the real call order through src-tauri/src, not an illustration. -->
-  <section class="works" id="works" data-sheet="03" data-sheet-name="How it works">
-    <span class="kicker">03 · How it works</span>
-    <hr class="caption-rule" />
-    <div class="strip">
-      <ol class="track">
-        <li class="stage">
-          <span class="st-num">01</span>
-          <h2>Fetch</h2>
-          <p>Parse the PR ref, pull the metadata through <code>gh</code>, then a blobless clone and <code>gh pr checkout</code>.</p>
-          <span class="st-mod">src-tauri/src/github.rs</span>
-        </li>
-        <li class="stage">
-          <span class="st-num">02</span>
-          <h2>Diff</h2>
-          <p>Build the per-file unified diff — the change, separated from the codebase it lands in.</p>
-          <span class="st-mod">src-tauri/src/diff.rs</span>
-        </li>
-        <li class="stage">
-          <span class="st-num">03</span>
-          <h2>Infer</h2>
-          <p>Read the whole repo for its de-facto casing per kind, and flag only where this PR drifts from it.</p>
-          <span class="st-mod">src-tauri/src/conventions.rs</span>
-        </li>
-        <li class="stage">
-          <span class="st-num">04</span>
-          <h2>Coach</h2>
-          <p>An Ousterhout-anchored prompt deals the cards — question-shaped, and capped at seven however large the PR.</p>
-          <span class="st-mod">src-tauri/src/coach.rs</span>
-        </li>
-        <li class="stage">
-          <span class="st-num">05</span>
-          <h2>Export</h2>
-          <p>The notes you accepted leave as a clean markdown review. Nothing is posted for you.</p>
-          <span class="st-mod">src-tauri/src/review.rs</span>
-        </li>
-      </ol>
-    </div>
-  </section>
-
-  <section class="split" id="practice" data-sheet="04" data-sheet-name="In practice">
-    <div class="split-copy">
-      <span class="kicker">04 · In practice</span>
-      <hr class="caption-rule" />
-      <h2 class="split-title">Seven questions, then silence</h2>
-      <p class="note">Paste a PR URL. Review Coach fetches the metadata, clones bloblessly, reads the diff against the codebase around it, and deals at most seven cards. Each is a question about the change — never a comment left in your name.</p>
-    </div>
-    <figure class="split-figure blueprint duotone">
-      <image-slot id="app-shot" shape="rect" placeholder="Drop a Review Coach screenshot" role="img" aria-label="Screenshot of the Review Coach desktop app inside a registration-marked frame"></image-slot>
-      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
-    </figure>
-  </section>
-
-  <section class="quote">
-    <figure>
-      <!-- keep the leading " — the blockquote's negative text-indent hangs it in the margin -->
-      <blockquote>"Complexity is incremental: you have to sweat the small stuff."</blockquote>
-      <!-- keep the leading "— " — the figcaption's negative text-indent hangs it -->
-      <figcaption>— John Ousterhout, A Philosophy of Software Design</figcaption>
-    </figure>
-  </section>
-
-  <section class="close" id="run" data-sheet="05" data-sheet-name="Run it">
-    <span class="kicker">05 · Run it</span>
-    <hr class="caption-rule" />
-    <h3>Run it on your next PR</h3>
-    <p class="sub">Clone the repo, <code>npm run tauri dev</code>, paste a PR URL. Requires <code>gh</code> authenticated, Node 18+, and Rust stable — with an Anthropic API key, or LM Studio running fully offline.</p>
-    <div class="row" style="display:flex; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--leading);">
-      <a class="btn btn-primary" href="https://github.com/RonanTalboom/review-coach">View on GitHub</a>
-      <a class="btn btn-ghost" href="https://github.com/RonanTalboom/review-coach#run">Read the run instructions</a>
-    </div>
-  </section>
-
-  <footer>Review Coach · review.consensuslabs — built with Tauri 2, Rust and React. Coaching by Claude or a local model.</footer>
+<!-- INTRO CURTAIN — display:none until site.js arms it -->
+<div class="curtain" id="curtain" aria-hidden="true">
+  <div class="curtain-inner">
+    <span class="curtain-word mono">Review Coach</span>
+    <span class="curtain-count mono" id="curtainCount">000</span>
+  </div>
+  <div class="curtain-bar" id="curtainBar"></div>
 </div>
-<!-- Only the motion engine loads up front: gsap + ScrollTrigger + lenis is 48K
-     gzipped and everything the page's structure depends on runs off it. The two
-     Vanta stacks are FETCHED ON DEMAND by motion.js instead — three.js is 148K
-     gzipped and p5 is 239K, which together are nine tenths of the payload for
-     two background textures at a quarter opacity. A visitor who reads the hero
-     and leaves pays for neither. -->
+
+<header>
+  <nav class="nav" aria-label="Primary">
+    <a class="nav-logo" href="#top"><span class="dot"></span>Review&nbsp;Coach<span class="by">by Consensus Labs</span></a>
+    <div class="nav-links">
+      <a class="mono" href="#app">The review</a>
+      <a class="mono" href="#session">How it works</a>
+      <a class="mono" href="#learning">Learning</a>
+      <a class="mono" href="#github">GitHub</a>
+      <a class="mono" href="#faq">FAQ</a>
+      <a class="nav-cta" href="https://consensuslabs.net/#contact">Request access</a>
+    </div>
+    <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="menuOverlay">
+      <span class="bar"></span><span class="bar"></span>
+    </button>
+  </nav>
+  <div class="nav-progress" id="navProgress"></div>
+</header>
+
+<div class="menu-overlay" id="menuOverlay" role="dialog" aria-modal="true" aria-label="Site navigation" hidden>
+  <div class="menu-panel">
+    <ul class="menu-list">
+      <li class="menu-item"><a href="#app"><span class="mi-idx mono">01</span><span>The review</span></a></li>
+      <li class="menu-item"><a href="#session"><span class="mi-idx mono">02</span><span>How it works</span></a></li>
+      <li class="menu-item"><a href="#tags"><span class="mi-idx mono">03</span><span>Card tags</span></a></li>
+      <li class="menu-item"><a href="#learning"><span class="mi-idx mono">04</span><span>Learning</span></a></li>
+      <li class="menu-item"><a href="#github"><span class="mi-idx mono">05</span><span>GitHub</span></a></li>
+      <li class="menu-item"><a href="#faq"><span class="mi-idx mono">06</span><span>FAQ</span></a></li>
+    </ul>
+    <a class="menu-cta" href="https://consensuslabs.net/#contact">Request access →</a>
+  </div>
+</div>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-grid" aria-hidden="true"></div>
+    <div class="wrap">
+      <div class="hero-meta">
+        <span class="hero-rot mono">
+          <span>Review Coach —&nbsp;</span>
+          <span class="sr-only">Coach, not comment bot</span>
+          <span class="rot-main" id="rot" aria-hidden="true" data-words="Coach, not comment bot|The code is the style guide|Tactical vs strategic|Keep your judgment">Coach, not comment bot</span>
+        </span>
+        <span class="mono hero-geo" id="heroGeo">Desktop · macOS · Linux · Windows</span>
+      </div>
+
+      <h1 id="heroTitle">Not another comment bot. <span class="accent">A coach for the reviewer.</span></h1>
+
+      <div class="hero-foot">
+        <p class="hero-sub" data-hero-reveal>A desktop app that reads a GitHub pull request and hands you a few sharp, question-shaped prompts — grounded in the repo's own conventions. You write the review. It sharpens your judgment.</p>
+        <div class="hero-actions" data-hero-reveal>
+          <span class="magnet"><a class="btn btn-ghost" href="#session">How it works</a></span>
+          <span class="magnet"><a class="btn btn-solid" href="https://consensuslabs.net/#contact">Request access →</a></span>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-hint mono" data-hero-reveal aria-hidden="true"><span class="sh-line"></span>Scroll</div>
+  </section>
+
+  <!-- TICKER -->
+  <div class="ticker" aria-hidden="true">
+    <div class="ticker-track" id="tickerTrack"><span>Coach, not comment bot<i>·</i></span><span>The code is the style guide<i>·</i></span><span>Tactical vs strategic<i>·</i></span><span>Keep your judgment<i>·</i></span><span>Pending, never submitted<i>·</i></span><span>Offline first<i>·</i></span><span>Restraint is the feature<i>·</i></span></div>
+  </div>
+
+  <!-- 01 · THE REVIEW -->
+  <section id="app" class="app-sec">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="mono label">01 / The review</span>
+        <h2 class="sec-title" data-split>Questions, not verdicts</h2>
+      </div>
+
+      <figure class="app" id="appMock" data-reveal>
+        <div class="app-bar mono">
+          <span class="app-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="app-name">Review Coach</span>
+          <span class="app-pr">fixtures/coaching_demo.rs</span>
+        </div>
+        <div class="app-body">
+          <div class="app-diff">
+            <div class="app-file mono"><b>coaching_demo.rs</b><span>+ added</span></div>
+            <div class="app-conv" aria-label="Conventions inferred from the repo">
+              <span class="tag">fn · snake_case</span><span class="tag">verbs · get / fetch / build</span>
+            </div>
+            <div class="code" role="img" aria-label="Diff excerpt: get_user removes the entry it looks up; first_score panics on an empty slice; build_report takes a validate flag.">
+              <div class="ln hunk"><span></span><span></span><span>@@ +24,3 @@</span></div>
+              <div class="ln add hot"><span>24</span><span>+</span><span><span class="kw">fn</span> get_user(store: &amp;mut HashMap&lt;u64, String&gt;, id: u64) {</span></div>
+              <div class="ln add"><span>25</span><span>+</span><span>    store.remove(&amp;id);</span></div>
+              <div class="ln add"><span>26</span><span>+</span><span>}</span></div>
+              <div class="ln hunk"><span></span><span></span><span>@@ +43,6 @@</span></div>
+              <div class="ln add"><span>43</span><span>+</span><span><span class="kw">fn</span> first_score(scores: &amp;[i32]) -&gt; i32 {</span></div>
+              <div class="ln add"><span>44</span><span>+</span><span>    <span class="kw">if</span> scores.is_empty() {</span></div>
+              <div class="ln add"><span>45</span><span>+</span><span>        panic!("no scores");</span></div>
+              <div class="ln add"><span>46</span><span>+</span><span>    }</span></div>
+              <div class="ln add"><span>47</span><span>+</span><span>    scores[0]</span></div>
+              <div class="ln add"><span>48</span><span>+</span><span>}</span></div>
+              <div class="ln hunk"><span></span><span></span><span>@@ +78,3 @@</span></div>
+              <div class="ln add"><span>78</span><span>+</span><span><span class="kw">fn</span> build_report(title: &amp;str, rows: u32, cols: u32, validate: bool, verbose: bool) -&gt; String {</span></div>
+              <div class="ln add"><span>79</span><span>+</span><span>    <span class="kw">if</span> validate &amp;&amp; verbose {</span></div>
+            </div>
+          </div>
+          <div class="app-cards">
+            <div class="app-cards-head mono"><span>Coaching</span><span>3 cards · this file</span></div>
+            <article class="app-card">
+              <div class="app-card-top"><span class="chip clarity">clarity</span><span class="app-card-where">coaching_demo.rs:24</span></div>
+              <p><code>get_user</code> removes the entry it looks up. Would a caller reading the name expect a delete?</p>
+              <div class="app-card-actions" aria-hidden="true"><span>Accept</span><span>Edit</span><span>Dismiss</span></div>
+            </article>
+            <article class="app-card">
+              <div class="app-card-top"><span class="chip strategic">strategic</span><span class="app-card-where">coaching_demo.rs:43</span></div>
+              <p><code>first_score</code> panics on an empty slice. Could returning an <code>Option</code> define the error out of existence?</p>
+              <div class="app-card-actions" aria-hidden="true"><span>Accept</span><span>Edit</span><span>Dismiss</span></div>
+            </article>
+            <article class="app-card">
+              <div class="app-card-top"><span class="chip tactical">tactical</span><span class="app-card-where">coaching_demo.rs:78</span></div>
+              <p><code>build_report</code> takes a <code>validate</code> flag, so it does two jobs. Would two functions leave the next change easier?</p>
+              <div class="app-card-actions" aria-hidden="true"><span>Accept</span><span>Edit</span><span>Dismiss</span></div>
+            </article>
+          </div>
+        </div>
+        <div class="app-caption mono">
+          <div><b>01</b>Question-shaped</div>
+          <div><b>02</b>Anchored to a line</div>
+          <div><b>03</b>Accept · Edit · Dismiss</div>
+        </div>
+      </figure>
+      <p class="app-note mono">Illustration. The code is from the app's own test fixture; the questions are written to show the shape of a card.</p>
+    </div>
+  </section>
+
+  <!-- 02 · POSITIONING -->
+  <section id="different">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="mono label">02 / Positioning</span>
+        <h2 class="sec-title" data-split>What a bot can't copy</h2>
+      </div>
+      <div class="sec-intro" data-reveal>
+        <span></span>
+        <p>CodeRabbit, Copilot and chat assistants post comments on the diff. Review Coach does the opposite, on three axes a comment bot cannot copy without becoming a different product.</p>
+      </div>
+      <div class="pos-list" style="margin-top: 36px; border-top: 1px solid var(--rule);">
+        <article class="pos-row" data-reveal>
+          <span class="idx">01</span>
+          <div>
+            <h3>It coaches. It does not conclude.</h3>
+            <div class="tags"><span class="tag">No verdicts</span><span class="tag">Never submits</span></div>
+          </div>
+          <p>The output is questions for a human, not rulings on a diff. At most it fills your own pending review, which only you can see, edit and submit.</p>
+        </article>
+        <article class="pos-row" data-reveal>
+          <span class="idx">02</span>
+          <div>
+            <h3>The code is the style guide.</h3>
+            <div class="tags"><span class="tag">No ruleset</span><span class="tag">Inferred from the repo</span></div>
+          </div>
+          <p>Naming conventions come from the whole existing codebase: verb vocabulary, affixes, casing per kind. Only drift from the repo's own habits is flagged. There is nothing to import or argue with.</p>
+        </article>
+        <article class="pos-row" data-reveal>
+          <span class="idx">03</span>
+          <div>
+            <h3>Tactical vs strategic.</h3>
+            <div class="tags"><span class="tag">Ousterhout</span><span class="tag">A Philosophy of Software Design</span></div>
+          </div>
+          <p>Does this change add a special case or remove one? Deepen the module, or push complexity onto its callers? Leave the next change easier, or harder?</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 · RESTRAINT -->
+  <section id="limits">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="mono label">03 / Restraint</span>
+        <h2 class="sec-title" data-split>Less is the product</h2>
+      </div>
+      <div class="lim-grid">
+        <div data-reveal>
+          <p class="lede">A paragraph per hunk would make it the noise it is trying to beat. So the prompts are <em>hard-capped per file and per pull request</em>, and the cap does not lift when the PR gets bigger.</p>
+          <p class="lim-more">Every card has to earn its place against the cost of one more thing to read. A clean function should get none.</p>
+        </div>
+        <div class="stats" data-reveal>
+          <div class="stat"><div class="val"><span data-count="3">3</span></div><div class="key mono">Cards per file, at most</div></div>
+          <div class="stat"><div class="val"><span>0</span></div><div class="key mono">Reviews submitted for you</div></div>
+          <div class="stat"><div class="val"><span>0</span></div><div class="key mono">External style rules</div></div>
+          <div class="stat"><div class="val"><span data-count="3">3</span></div><div class="key mono">Coaching providers</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 · THE SESSION — horizontal pinned track -->
+  <section id="session" class="stack-sec">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="mono label">04 / How it works</span>
+        <h2 class="sec-title" data-split>One pull request, start to finish</h2>
+      </div>
+    </div>
+    <div class="hscroll" id="hscroll">
+      <div class="hscroll-track" id="hscrollTrack">
+        <article class="hcard">
+          <span class="hc-tag mono">Fetch</span>
+          <span class="hc-n" aria-hidden="true">01</span>
+          <h3>Paste a PR</h3>
+          <p>A PR URL or <code>owner/repo#123</code>. The metadata and description come through <code>gh</code>, then a blobless clone and <code>gh pr checkout</code> put the whole repo on disk.</p>
+          <span class="hc-path">src-tauri/src/github.rs</span>
+        </article>
+        <article class="hcard">
+          <span class="hc-tag mono">Diff</span>
+          <span class="hc-n" aria-hidden="true">02</span>
+          <h3>Separate the change</h3>
+          <p>A per-file unified diff: what this PR does, apart from the codebase it lands in.</p>
+          <span class="hc-path">src-tauri/src/diff.rs</span>
+        </article>
+        <article class="hcard">
+          <span class="hc-tag mono">Infer</span>
+          <span class="hc-n" aria-hidden="true">03</span>
+          <h3>Learn the house style</h3>
+          <p>Read the whole repo for its de-facto casing and verb habits per kind, then flag only where this PR drifts from them.</p>
+          <span class="hc-path">src-tauri/src/conventions.rs</span>
+        </article>
+        <article class="hcard">
+          <span class="hc-tag mono">Overview</span>
+          <span class="hc-n" aria-hidden="true">04</span>
+          <h3>Read the whole PR</h3>
+          <p>One reading of the full change before any single file is coached, so every card knows what the PR is for.</p>
+          <span class="hc-path">prompts/overview-system.md</span>
+        </article>
+        <article class="hcard">
+          <span class="hc-tag mono">Coach</span>
+          <span class="hc-n" aria-hidden="true">05</span>
+          <h3>Deal the cards</h3>
+          <p>An Ousterhout-anchored prompt per file. At most three question-shaped cards each, under a ceiling for the whole PR.</p>
+          <span class="hc-path">src-tauri/src/coach.rs</span>
+        </article>
+        <article class="hcard">
+          <span class="hc-tag mono">Decide</span>
+          <span class="hc-n" aria-hidden="true">06</span>
+          <h3>Keep your judgment</h3>
+          <p>Accept, edit or dismiss each card. What you keep exports as a clean markdown review, ready to paste.</p>
+          <span class="hc-path">src-tauri/src/review.rs</span>
+        </article>
+        <article class="hcard">
+          <span class="hc-tag mono">Send</span>
+          <span class="hc-n" aria-hidden="true">07</span>
+          <h3>Pending, not posted</h3>
+          <p>Or send the kept comments into your own pending GitHub review, on their diff lines. Only you see it until you submit.</p>
+          <span class="hc-path">src-tauri/src/send.rs</span>
+        </article>
+        <article class="hcard hcard-end">
+          <h3>Questions in.<br />Your review out.</h3>
+          <a class="btn btn-solid" href="https://consensuslabs.net/#contact">Request access →</a>
+        </article>
+      </div>
+    </div>
+    <div class="hscroll-rail" aria-hidden="true"><span id="hscrollBar"></span></div>
+  </section>
+
+  <!-- 05 · CARD TAGS -->
+  <section id="tags">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="mono label">05 / Card tags</span>
+        <h2 class="sec-title" data-split>Four kinds of question</h2>
+      </div>
+    </div>
+    <div class="wrap" style="padding-top: 48px; padding-bottom: 72px;">
+      <div class="svc-grid">
+        <article class="svc" data-reveal>
+          <span class="ghost" aria-hidden="true">A</span>
+          <span class="num">A · strategic</span>
+          <h3>System design</h3>
+          <p>What the change optimises for, and whether it leaves the next change easier or harder.</p>
+          <p class="ask">Is this module getting deeper, or pushing complexity onto its callers?</p>
+        </article>
+        <article class="svc" data-reveal>
+          <span class="ghost" aria-hidden="true">B</span>
+          <span class="num">B · tactical</span>
+          <h3>The quick fix</h3>
+          <p>A shortcut the next change will have to work around.</p>
+          <p class="ask">Does this add a special case where the general one would do?</p>
+        </article>
+        <article class="svc" data-reveal>
+          <span class="ghost" aria-hidden="true">C</span>
+          <span class="num">C · convention</span>
+          <h3>House habits</h3>
+          <p>A name that breaks the repo's dominant convention, measured against the repo's own code.</p>
+          <p class="ask">Everything else here says <code>fetch_</code>. Why does this one say <code>load_</code>?</p>
+        </article>
+        <article class="svc" data-reveal>
+          <span class="ghost" aria-hidden="true">D</span>
+          <span class="num">D · clarity</span>
+          <h3>One clear whole</h3>
+          <p>Name, comment and code telling the same story, so the next reader does not have to guess.</p>
+          <p class="ask">Does the comment say something the code cannot?</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- INK PANEL — Vanta NET, loaded on approach -->
+  <section class="ink-panel" id="judgment">
+    <div class="ink-fx" id="vantaMount" aria-hidden="true"></div>
+    <div class="ink-veil" aria-hidden="true"></div>
+    <div class="ink-inner">
+      <div class="wrap ink-wrap">
+        <span class="mono label ink-label">Principle</span>
+        <h2 class="ink-title" data-split>You keep your judgment.</h2>
+        <p class="ink-sub">Nothing reaches the PR's author until you submit it. Send to GitHub carries only the comments you kept, exactly as you edited them.</p>
+        <div class="flow" id="flow">
+          <div class="flow-item"><div class="flow-link"><span class="mono">01</span>The repository is the authority</div><div class="flow-marquee" aria-hidden="true"><div class="flow-marquee-inner"><div class="flow-track"><span>Standards from the code under review</span><span>Standards from the code under review</span><span>Standards from the code under review</span><span>Standards from the code under review</span></div></div></div></div>
+          <div class="flow-item"><div class="flow-link"><span class="mono">02</span>Restraint is the feature</div><div class="flow-marquee" aria-hidden="true"><div class="flow-marquee-inner"><div class="flow-track"><span>More output is a cost</span><span>More output is a cost</span><span>More output is a cost</span><span>More output is a cost</span></div></div></div></div>
+          <div class="flow-item"><div class="flow-link"><span class="mono">03</span>Offline is not a degraded mode</div><div class="flow-marquee" aria-hidden="true"><div class="flow-marquee-inner"><div class="flow-track"><span>Local model, no network</span><span>Local model, no network</span><span>Local model, no network</span><span>Local model, no network</span></div></div></div></div>
+          <div class="flow-item"><div class="flow-link"><span class="mono">04</span>It learns from your decisions</div><div class="flow-marquee" aria-hidden="true"><div class="flow-marquee-inner"><div class="flow-track"><span>This reviewer, these repos</span><span>This reviewer, these repos</span><span>This reviewer, these repos</span><span>This reviewer, these repos</span></div></div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 · LEARNING -->
+  <section id="learning">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="mono label">06 / Learning</span>
+        <h2 class="sec-title" data-split>It gets sharper with you</h2>
+      </div>
+      <div class="prin-list">
+        <div class="prin" data-reveal>
+          <span class="idx">01</span>
+          <h3>Warm-up<small>At PR load</small></h3>
+          <p>When a PR opens, up to three due cards from the built-in review library: the questions worth asking before you start. Dismiss it in one action; it never blocks the review.</p>
+        </div>
+        <div class="prin" data-reveal>
+          <span class="idx">02</span>
+          <h3>Drill<small>On a schedule</small></h3>
+          <p>A separate session over the same library, on a spaced-repetition schedule. Grade each card and the schedule decides when it comes back. The library covers system design and how to write a review comment.</p>
+        </div>
+        <div class="prin" data-reveal>
+          <span class="idx">03</span>
+          <h3>Your decisions<small>Stored locally</small></h3>
+          <p>Every accept and dismiss is remembered in a local database and makes the coach sharper for your repos, instead of a general-purpose ruleset tuned for someone else.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 · SEND TO GITHUB -->
+  <section id="github">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="mono label">07 / GitHub</span>
+        <h2 class="sec-title" data-split>Send to your pending review</h2>
+      </div>
+      <div class="eng-list">
+        <article class="eng" data-reveal>
+          <span class="eng-key mono">I</span>
+          <div class="eng-main">
+            <h3>Via <code>gh</code></h3>
+            <span class="eng-shape mono">Default · no setup</span>
+          </div>
+          <div class="eng-body">
+            <p>The app writes the pending review with the same <code>gh</code> login it already uses to load pull requests. Every repo you can reach, no key.</p>
+            <p class="eng-fit">Best when you review from your own machine.</p>
+          </div>
+        </article>
+        <article class="eng" data-reveal>
+          <span class="eng-key mono">II</span>
+          <div class="eng-main">
+            <h3>Via the Review Coach GitHub App</h3>
+            <span class="eng-shape mono">Hosted · private for now</span>
+          </div>
+          <div class="eng-body">
+            <p>Authorize the App once and it writes the pending review as you: GitHub shows your avatar with the App's badge. The desktop app sends only what you kept, with a personal upload key.</p>
+            <p class="eng-fit">It acts as you on purpose: GitHub shows a pending review only to its author, so a bot's draft would be invisible to you.</p>
+          </div>
+        </article>
+      </div>
+      <div class="eng-floor" data-reveal>
+        <p class="eng-floor-num">Pending means pending. <strong>You submit, or nobody does.</strong></p>
+        <p class="eng-floor-sub">Read the comments again in the pull request itself, edit or delete any of them, and submit when you are ready. The tool never submits a review.</p>
+        <a class="text-link mono" href="/github">Have access? Open the GitHub App <span>→</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 · PROVIDERS -->
+  <section id="providers">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="mono label">08 / Providers</span>
+        <h2 class="sec-title" data-split>Your model, your call</h2>
+      </div>
+    </div>
+    <div class="wrap" style="padding-top: 48px;">
+      <div class="proc-grid" id="procGrid">
+        <div class="proc">
+          <div class="big">01</div>
+          <h3>Claude API</h3>
+          <span class="proc-shape mono">Hosted</span>
+          <p>The Anthropic API, with your own key in <code>ANTHROPIC_API_KEY</code>.</p>
+        </div>
+        <div class="proc">
+          <div class="big">02</div>
+          <h3>LM Studio</h3>
+          <span class="proc-shape mono">Fully offline</span>
+          <p>Any local OpenAI-compatible server. No key, no network. Test the connection and pick the loaded model in settings.</p>
+        </div>
+        <div class="proc">
+          <div class="big">03</div>
+          <h3>Claude Code CLI</h3>
+          <span class="proc-shape mono">Local CLI</span>
+          <p>The Claude Code command-line tool already on your machine, with its own sign-in.</p>
+        </div>
+      </div>
+      <div class="proc-floor" data-reveal>
+        <span></span>
+        <p><strong>Offline is first-class.</strong> Every desktop capability works with a local model and no network. A feature that only works in the cloud counts as a regression.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 09 · FAQ -->
+  <section id="faq">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="mono label">09 / FAQ</span>
+        <h2 class="sec-title" data-split>Questions</h2>
+      </div>
+      <div class="faq-list">
+        <details data-reveal>
+          <summary>Does it post comments for me?<span class="plus" aria-hidden="true">+</span></summary>
+          <div class="answer">No. It never submits anything. If you use Send to GitHub, your kept comments go into your own pending review, visible only to you until you submit it on GitHub.</div>
+        </details>
+        <details data-reveal>
+          <summary>Where does my code go?<span class="plus" aria-hidden="true">+</span></summary>
+          <div class="answer">The repository is cloned to your machine. With LM Studio nothing leaves it. With the Claude API or the Claude Code CLI, the diff and its context go to that provider for coaching. Reviews, card states and your feedback live in a local SQLite database.</div>
+        </details>
+        <details data-reveal>
+          <summary>Why so few prompts?<span class="plus" aria-hidden="true">+</span></summary>
+          <div class="answer">Because sparsity is the product. At most three cards per file and a hard ceiling per pull request. More output would make it the noise it is trying to beat.</div>
+        </details>
+        <details data-reveal>
+          <summary>Which conventions does it check?<span class="plus" aria-hidden="true">+</span></summary>
+          <div class="answer">Only the ones your repository already follows. It infers naming (verb vocabulary, affixes, casing per kind) from the existing code and flags where the PR drifts. There is no ruleset to configure.</div>
+        </details>
+        <details data-reveal>
+          <summary>What do I need to run it?<span class="plus" aria-hidden="true">+</span></summary>
+          <div class="answer"><code>gh</code> installed and authenticated, <code>git</code>, and one coaching provider. It runs on macOS, Linux and Windows.</div>
+        </details>
+        <details data-reveal>
+          <summary>Can I download it?<span class="plus" aria-hidden="true">+</span></summary>
+          <div class="answer">Not yet. Review Coach is not packaged or published. Ask Consensus Labs for access.</div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · ACCESS -->
+  <section id="access" class="contact">
+    <div class="wrap contact-grid">
+      <div data-reveal>
+        <span class="mono label accent">10 / Access</span>
+        <h2>Review your next PR <span class="accent">with a coach.</span></h2>
+        <p class="sub">Review Coach is in early access and built by Consensus Labs, an engineering studio in Amsterdam.</p>
+        <div class="hero-actions">
+          <a class="btn btn-solid" href="https://consensuslabs.net/#contact">Request access →</a>
+          <a class="btn btn-ghost" href="https://consensuslabs.net">Consensus Labs ↗</a>
+        </div>
+      </div>
+      <div class="term" data-reveal>
+        <div class="term-bar mono"><span>Once you have the source</span><span>sh</span></div>
+<pre><span class="p">$ </span>gh auth status
+<span class="p">$ </span>npm install
+<span class="p">$ </span>npm run tauri dev
+<span class="c"># then paste a PR URL, or owner/repo#123</span></pre>
+        <div class="term-req">
+          <div><b>01</b>gh, authenticated</div>
+          <div><b>02</b>git · Node 18+</div>
+          <div><b>03</b>Rust stable</div>
+          <div><b>04</b>One coaching provider</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="foot-bar">
+      <span class="mono">© 2026 Consensus Labs</span>
+      <div class="links mono">
+        <a href="https://consensuslabs.net">Consensus Labs</a>
+        <a href="/github">GitHub App</a>
+        <a href="https://consensuslabs.net/blog">Journal</a>
+        <a href="https://consensuslabs.net/#contact">Contact</a>
+      </div>
+    </div>
+    <div class="foot-word" id="footWord" aria-hidden="true">REVIEW COACH</div>
+  </footer>
+</main>
+
+<div class="cursor-ring" id="cursorRing" aria-hidden="true"></div>
+<div class="cursor-dot" id="cursorDot" aria-hidden="true"></div>
+
 <script src="./vendor/gsap.min.js"></script>
 <script src="./vendor/ScrollTrigger.min.js"></script>
+<script src="./vendor/SplitText.min.js"></script>
 <script src="./vendor/lenis.min.js"></script>
-<script src="./motion.js"></script>
-<script src="image-slot.js"></script>
-<script>
-// Review aid: baseline-grid overlay — add ?baselines to the URL, or press B to toggle.
-(() => {
-  if (new URLSearchParams(location.search).has('baselines')) document.body.setAttribute('data-baselines', '');
-  addEventListener('keydown', (e) => {
-    const t = e.target;
-    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
-    if ((e.key === 'b' || e.key === 'B') && !e.metaKey && !e.ctrlKey && !e.altKey) document.body.toggleAttribute('data-baselines');
-  });
-})();
-</script>
+<script src="./site.js"></script>
 </body>
 </html>
