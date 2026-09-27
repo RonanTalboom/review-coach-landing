@@ -16,6 +16,8 @@
      REACH     when the session track is not pinned (reduced motion, phones),
                its overflow can still be scrolled: a clipped track with
                overflow-x:hidden passes every other check and hides four steps.
+     FOLD      above 900px wide (two-column hero), the whole hero stage,
+               its offset plate included, is on screen without scrolling.
      STEADY    with motion on, #session's Y does not move while the hero's
                rotating phrase cycles (sampled for ~9s after load). A phrase
                that wraps on some cycles is a layout write the 5s snapshot
@@ -81,6 +83,7 @@ async function run(reduced, prefix) {
     ready: !!window.__rcReady, pin: window.__rcPin ?? null,
     curtainGone: getComputedStyle(document.getElementById('curtain')).display === 'none',
     heroCta: ${hits('.hero-actions .btn-solid')},
+    stageBottom: Math.round(document.getElementById('stage').getBoundingClientRect().bottom + 16), innerH: window.innerHeight,
     navCta: ${mobile ? "'n/a'" : hits('.nav-cta')},
   })`));
   await shot('01-hero');
@@ -155,6 +158,7 @@ const checks = {
   CLICK: [motion.top.heroCta, rm.top.heroCta].every((v) => v === true) && [motion.top.navCta, rm.top.navCta].every((v) => v === true || v === 'n/a') ? 'PASS' : `FAIL hero=${motion.top.heroCta}/${rm.top.heroCta} nav=${motion.top.navCta}/${rm.top.navCta}`,
   MENU: W > 900 ? 'n/a' : [motion, rm].every((o) => o.menuOpen.expanded === 'true' && o.menuOpen.visible && o.menuOpen.linkHit === true && o.menuClosed.expanded === 'false' && o.menuClosed.hidden && o.menuClosed.htmlOverflow === '') ? 'PASS' : `FAIL ${JSON.stringify([motion.menuOpen, motion.menuClosed, rm.menuOpen, rm.menuClosed])}`,
   ERRORS: !motion.errors.length && !rm.errors.length ? 'PASS' : `FAIL ${JSON.stringify([...motion.errors, ...rm.errors])}`,
+  FOLD: W <= 900 ? 'n/a' : rm.top.stageBottom <= rm.top.innerH ? `PASS (stage ends at ${rm.top.stageBottom} of ${rm.top.innerH})` : `FAIL stage ends at ${rm.top.stageBottom}, viewport is ${rm.top.innerH}`,
   REACH: [motion, rm].every((o) => o.reach.pinned || !o.reach.overflows || o.reach.overflowX !== 'hidden') ? 'PASS' : `FAIL ${JSON.stringify([motion.reach, rm.reach])}`,
   STEADY: motion.steady.length === 1 ? `PASS (#session held at ${motion.steady[0]} through the rotation)` : `FAIL #session moved: ${motion.steady}`,
 };
