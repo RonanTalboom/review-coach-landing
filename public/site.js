@@ -268,7 +268,10 @@
       const r = el.getBoundingClientRect(), st = stage.getBoundingClientRect();
       return { x: r.left - st.left + r.width / 2, y: r.top - st.top + r.height / 2 };
     };
-    const dealt = { x: 0, opacity: 1, rotation: 0, duration: 0.7, ease: 'power3.out', stagger: 0.16 };
+    // A fresh vars object per tween: tl.to() writes `parent` into the object it
+    // is given, so a shared one would add finalFrame's deal back into the
+    // finished timeline, which then replays its tail forever.
+    const dealt = () => ({ x: 0, opacity: 1, rotation: 0, duration: 0.7, ease: 'power3.out', stagger: 0.16 });
     const offDeck = () => ({
       transformOrigin: '50% 0', x: 150, opacity: 0, rotation: 7,
       y: (i) => slotY()[i], scale: (i) => SCALE[i], zIndex: (i) => 3 - i,
@@ -282,7 +285,7 @@
       .set(buttons, { clearProps: 'backgroundColor,color,borderColor' })
       .set(cursor, { x: () => stage.clientWidth * 0.92, y: () => stage.clientHeight * 0.96, opacity: 0, scale: 1 })
       .set(plus, { opacity: 0, y: 0 })
-      .to([cards[2], cards[1], cards[0]], dealt)
+      .to([cards[2], cards[1], cards[0]], dealt())
       .to(cursor, { opacity: 1, duration: 0.25 }, '+=0.2');
 
     const click = (btn, fill) => {
@@ -321,7 +324,7 @@
       gsap.set(stamps, { opacity: 0, scale: 1.8 });
       gsap.set(buttons, { clearProps: 'backgroundColor,color,borderColor' });
       gsap.set(cards, offDeck());
-      gsap.to([cards[2], cards[1], cards[0]], dealt);
+      gsap.to([cards[2], cards[1], cards[0]], dealt());
       gsap.to(accept[0], { backgroundColor: GREEN, borderColor: GREEN, color: PAPER, duration: 0.2, delay: 1.1 });
       gsap.to(stamps[0], { opacity: 1, scale: 1, duration: 0.35, ease: 'back.out(2.5)', delay: 1.15 });
     }
