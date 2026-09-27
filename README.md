@@ -47,6 +47,7 @@ The react-bits effects the Astro site uses (RotatingText, DecryptedText, Magnet,
 python3 -m http.server 4321 --directory public &
 node scripts/verify.mjs            # desktop, 1440x1000
 node scripts/verify.mjs 390 844    # phone
+node scripts/verify.mjs 375 812    # narrow phone
 ```
 
 It renders the page with motion on and with reduced motion, and checks:
@@ -54,8 +55,10 @@ It renders the page with motion on and with reduced motion, and checks:
 - **LANDMARK** — `#session` sits at the same document Y in both.
 - **DELTA** — the two documents differ by exactly the pin distance `site.js` publishes as `window.__rcPin`, and by nothing else.
 - **OVERFLOW**, **SETTLED** (nothing left hidden after a full scroll), **CLICK**, **MENU** (phone) and **ERRORS**.
+- **REACH** — when the session track is not pinned (reduced motion, phones) it can still be scrolled sideways.
+- **STEADY** — `#session` does not move while the hero phrase rotates (sampled for about 9 seconds).
 
-A layout write injected into the motion layer (`margin-top: 80px` on the hero) fails LANDMARK and DELTA, so the oracle is live.
+Each check has been seen to fail: an injected `margin-top: 80px` on the hero fails LANDMARK and DELTA; the old clipped track failed REACH at 1440; the old rotator failed STEADY at 375 (a 19px jump).
 
 ## Deploy
 
