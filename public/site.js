@@ -149,6 +149,7 @@
     rotate($('#rot'), introDelay + 1.2);
     decrypt($('#heroGeo'), introDelay + 0.2);
     if (finePointer) $$('.magnet').forEach(magnet);
+    stageDemo(introDelay + 1.3);
 
     ticker();
 
@@ -237,6 +238,103 @@
       gsap.fromTo(phrases[i], { yPercent: 120, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.5, ease: 'power3.out', stagger: { each: 0.018, from: 'end' }, delay: 0.22 });
     };
     setTimeout(() => setInterval(tick, 2800), delay * 1000);
+  }
+
+  /* The hero stage: three cards are dealt, a cursor keeps two (each flies
+     into the pending review) and dismisses one. Two cycles, then the cards
+     are dealt once more and it holds on that frame: a loop that never stops
+     beside the reading copy is a distraction. Slot positions are absolute
+     values read from CSS (--slot1/--slot2), never relative, so repeats cannot
+     drift; every target rect is measured only once its card has settled. */
+  function stageDemo(delay) {
+    const stage = $('#stage');
+    if (!stage) return;
+    const cards = $$('.scard', stage); // front, middle, back
+    const cursor = $('.stage-cursor', stage);
+    const chip = $('.stage-pending', stage);
+    const plus = $('.stage-plus', stage);
+    if (cards.length !== 3 || !cursor || !chip || !plus) return;
+    const accept = cards.map((c) => $('.scard-actions span:nth-child(1)', c));
+    const dismiss = cards.map((c) => $('.scard-actions span:nth-child(3)', c));
+    const stamps = cards.map((c) => $('.scard-stamp', c));
+    const buttons = [...accept, ...dismiss];
+    const GREEN = '#0e7a4e', INK = '#131210', PAPER = '#f7f1e3';
+    const SCALE = [1, 0.95, 0.9];
+    const slotY = () => {
+      const css = getComputedStyle(stage);
+      return [parseFloat(css.getPropertyValue('--slot1')) || 104, parseFloat(css.getPropertyValue('--slot2')) || 52, 0];
+    };
+    const centre = (el) => {
+      const r = el.getBoundingClientRect(), st = stage.getBoundingClientRect();
+      return { x: r.left - st.left + r.width / 2, y: r.top - st.top + r.height / 2 };
+    };
+    const dealt = { x: 0, opacity: 1, rotation: 0, duration: 0.7, ease: 'power3.out', stagger: 0.16 };
+    const offDeck = () => ({
+      transformOrigin: '50% 0', x: 150, opacity: 0, rotation: 7,
+      y: (i) => slotY()[i], scale: (i) => SCALE[i], zIndex: (i) => 3 - i,
+    });
+
+    gsap.set(cards, offDeck()); // hidden before the first frame, no flash
+
+    const tl = gsap.timeline({ paused: true, repeat: 1, repeatDelay: 0.8, repeatRefresh: true, onComplete: finalFrame });
+    tl.set(cards, offDeck())
+      .set(stamps, { opacity: 0, scale: 1.8 })
+      .set(buttons, { clearProps: 'backgroundColor,color,borderColor' })
+      .set(cursor, { x: () => stage.clientWidth * 0.92, y: () => stage.clientHeight * 0.96, opacity: 0, scale: 1 })
+      .set(plus, { opacity: 0, y: 0 })
+      .to([cards[2], cards[1], cards[0]], dealt)
+      .to(cursor, { opacity: 1, duration: 0.25 }, '+=0.2');
+
+    const click = (btn, fill) => {
+      tl.to(cursor, { x: () => centre(btn).x, y: () => centre(btn).y, duration: 0.75, ease: 'power2.inOut' }, '+=0.35')
+        .to(cursor, { scale: 0.82, duration: 0.09, yoyo: true, repeat: 1, ease: 'power1.inOut' })
+        .to(btn, { backgroundColor: fill, borderColor: fill, color: PAPER, duration: 0.12 }, '<');
+    };
+    // cards behind `k` each step up one slot
+    const advance = (k, at) => {
+      const rest = cards.slice(k + 1);
+      tl.to(rest, { y: (i) => slotY()[i], scale: (i) => SCALE[i], zIndex: (i) => 3 - i, duration: 0.5, ease: 'power3.out' }, at);
+    };
+    const keep = (k) => {
+      click(accept[k], GREEN);
+      tl.to(stamps[k], { opacity: 1, scale: 1, duration: 0.35, ease: 'back.out(2.5)' }, '<0.05');
+      const fly = `fly${k}`;
+      tl.addLabel(fly, '+=0.45')
+        .to(cards[k], {
+          transformOrigin: '50% 50%', rotation: -4, scale: 0.16, opacity: 0, duration: 0.6, ease: 'power3.in',
+          x: () => centre(chip).x - centre(cards[k]).x,
+          y: () => gsap.getProperty(cards[k], 'y') + centre(chip).y - centre(cards[k]).y,
+        }, fly)
+        .fromTo(plus, { opacity: 0, y: 6 }, { opacity: 1, y: -10, duration: 0.35, ease: 'power2.out' }, `${fly}+=0.5`)
+        .to(plus, { opacity: 0, y: -22, duration: 0.4, ease: 'power2.in' }, `${fly}+=1.2`);
+      advance(k, `${fly}+=0.35`);
+    };
+    keep(0);
+    keep(1);
+    click(dismiss[2], INK);
+    tl.to(cards[2], { x: 160, rotation: 8, opacity: 0, duration: 0.5, ease: 'power2.in' }, '+=0.3')
+      .to(cursor, { opacity: 0, duration: 0.3 }, '+=0.2')
+      .to({}, { duration: 0.6 });
+
+    // The resting frame: dealt again, the front card kept.
+    function finalFrame() {
+      gsap.set(stamps, { opacity: 0, scale: 1.8 });
+      gsap.set(buttons, { clearProps: 'backgroundColor,color,borderColor' });
+      gsap.set(cards, offDeck());
+      gsap.to([cards[2], cards[1], cards[0]], dealt);
+      gsap.to(accept[0], { backgroundColor: GREEN, borderColor: GREEN, color: PAPER, duration: 0.2, delay: 1.1 });
+      gsap.to(stamps[0], { opacity: 1, scale: 1, duration: 0.35, ease: 'back.out(2.5)', delay: 1.15 });
+    }
+
+    let started = false, visible = true;
+    ScrollTrigger.create({
+      trigger: stage, start: 'top bottom', end: 'bottom top',
+      onToggle: (self) => {
+        visible = self.isActive;
+        if (started && tl.progress() < 1) (visible ? tl.resume() : tl.pause());
+      },
+    });
+    gsap.delayedCall(delay, () => { started = true; if (visible) tl.play(); });
   }
 
   /* DecryptedText, by hand: scrambled glyphs resolve left to right. */
