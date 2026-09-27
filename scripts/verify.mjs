@@ -22,6 +22,10 @@
                rotating phrase cycles (sampled for ~9s after load). A phrase
                that wraps on some cycles is a layout write the 5s snapshot
                misses.
+     IDLE      with motion on and the hero in view, the stage demo has fully
+               stopped 40s after load: no running tween on the stage, and the
+               front card rests KEPT. A demo that restarts its own tail passes
+               every layout check while burning a frame loop forever.
 
    Usage:  python3 -m http.server 4321 --directory public &
            node scripts/verify.mjs            # 1440x1000
@@ -61,6 +65,7 @@ async function run(reduced, prefix) {
   const mobile = W <= 900;
   await S('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile });
   if (reduced) await S('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+  const tNav = Date.now();
   await S('Page.navigate', { url: URL_ });
   await sleep(5000); // the first-visit curtain runs ~2.3s
   const ev = async (expr) => {
@@ -98,6 +103,10 @@ async function run(reduced, prefix) {
       await sleep(700);
     }
     out.steady = [...ys];
+    await sleep(Math.max(0, 40000 - (Date.now() - tNav)));
+    out.idle = JSON.parse(await ev(`JSON.stringify({
+      running: gsap.getTweensOf([...document.querySelectorAll('#stage, #stage *')]).filter(t => t.isActive()).length,
+      stamp: getComputedStyle(document.querySelector('#stage .s1 .scard-stamp')).opacity })`));
   }
 
   if (mobile) {
@@ -159,6 +168,7 @@ const checks = {
   MENU: W > 900 ? 'n/a' : [motion, rm].every((o) => o.menuOpen.expanded === 'true' && o.menuOpen.visible && o.menuOpen.linkHit === true && o.menuClosed.expanded === 'false' && o.menuClosed.hidden && o.menuClosed.htmlOverflow === '') ? 'PASS' : `FAIL ${JSON.stringify([motion.menuOpen, motion.menuClosed, rm.menuOpen, rm.menuClosed])}`,
   ERRORS: !motion.errors.length && !rm.errors.length ? 'PASS' : `FAIL ${JSON.stringify([...motion.errors, ...rm.errors])}`,
   FOLD: W <= 900 ? 'n/a' : rm.top.stageBottom <= rm.top.innerH ? `PASS (stage ends at ${rm.top.stageBottom} of ${rm.top.innerH})` : `FAIL stage ends at ${rm.top.stageBottom}, viewport is ${rm.top.innerH}`,
+  IDLE: motion.idle.running === 0 && motion.idle.stamp === '1' ? 'PASS (stage demo stopped, front card kept)' : `FAIL ${JSON.stringify(motion.idle)}`,
   REACH: [motion, rm].every((o) => o.reach.pinned || !o.reach.overflows || o.reach.overflowX !== 'hidden') ? 'PASS' : `FAIL ${JSON.stringify([motion.reach, rm.reach])}`,
   STEADY: motion.steady.length === 1 ? `PASS (#session held at ${motion.steady[0]} through the rotation)` : `FAIL #session moved: ${motion.steady}`,
 };
