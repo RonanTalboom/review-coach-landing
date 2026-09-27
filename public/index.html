@@ -121,7 +121,7 @@ html.menu-open .menu-btn { border-color: var(--paper); }
 html.menu-open .menu-btn .bar { background: var(--paper); }
 
 /* ---------- hero ---------- */
-.hero { padding: 170px 0 0; position: relative; overflow: hidden; }
+.hero { padding: 132px 0 0; position: relative; overflow: hidden; }
 .hero-grid {
   position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
   background-image:
@@ -141,10 +141,47 @@ html.menu-open .menu-btn .bar { background: var(--paper); }
 .rot-main .ch { display: inline-block; }
 .hero-geo { text-align: right; }
 .hero-geo .enc { color: var(--accent); opacity: 0.75; }
-.hero h1 { font-weight: 900; font-size: clamp(52px, 8.2vw, 132px); line-height: 0.96; letter-spacing: -0.035em; text-wrap: balance; max-width: 14ch; }
-.hero-foot { display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: end; margin-top: 56px; padding-bottom: 64px; }
-.hero-sub { font-size: 20px; max-width: 46ch; color: var(--ink-soft); text-wrap: pretty; }
+.hero-main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: 56px; align-items: center; padding-bottom: 72px; }
+.hero h1 { font-weight: 900; font-size: clamp(46px, 5.4vw, 88px); line-height: 0.96; letter-spacing: -0.035em; text-wrap: balance; max-width: 11ch; }
+.hero-sub { margin-top: 30px; font-size: 20px; max-width: 34ch; color: var(--ink-soft); text-wrap: pretty; }
 .hero-actions { display: flex; gap: 12px; align-items: center; }
+.hero-copy .hero-actions { margin-top: 36px; flex-wrap: wrap; }
+
+/* ---------- hero stage: the product, illustrated ----------
+   Fixed height, every moving part absolutely positioned, so the demo loop
+   can never write layout (the STEADY check holds it to that). */
+/* Slot gaps show each back card's tag row and none of its text. */
+.stage { position: relative; height: 480px; margin: 0; isolation: isolate; --slot1: 80px; --slot2: 40px; }
+.stage-win { position: absolute; left: 0; top: 0; width: 80%; background: var(--paper); border: 1px solid var(--ink); }
+.stage-win::before { content: ""; position: absolute; inset: -1px; transform: translate(16px, 16px); background: var(--accent); z-index: -1; }
+.stage-bar { display: flex; align-items: center; gap: 14px; padding: 11px 16px; background: var(--ink); color: var(--paper); }
+.stage-bar .stage-ref { margin-left: auto; color: color-mix(in srgb, var(--paper) 65%, transparent); }
+.stage-pr { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 16px; border-bottom: 1px solid color-mix(in srgb, var(--ink) 18%, transparent); }
+.stage-pr b { font-weight: 700; font-size: 16px; letter-spacing: -0.01em; }
+.stage-pr .mono { color: var(--ink-soft); font-size: 11px; }
+.stage-code { overflow: hidden; padding: 8px 0 14px; font-family: var(--mono); font-size: 12.5px; line-height: 1.8; background: color-mix(in srgb, var(--ink) 3%, var(--paper)); }
+.stage-code .ln { display: grid; grid-template-columns: 40px 18px max-content; white-space: pre; position: relative; }
+.stage-code .ln > span:first-child { color: color-mix(in srgb, var(--ink) 40%, transparent); text-align: right; padding-right: 10px; }
+.stage-code .ln.add { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.stage-code .ln.add > span:nth-child(2) { color: var(--accent); }
+.stage-code .ln.hunk { color: color-mix(in srgb, var(--ink) 45%, transparent); background: color-mix(in srgb, var(--ink) 5%, transparent); }
+.stage-code .ln.hot::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); }
+.stage-code .kw { color: var(--accent); font-weight: 500; }
+.stage-cards { position: absolute; right: 0; top: 150px; width: 60%; }
+.scard { position: absolute; left: 0; right: 0; top: 0; background: var(--paper); border: 1px solid var(--ink); box-shadow: 6px 6px 0 var(--ink); padding: 15px 17px 13px; display: grid; gap: 9px; transform-origin: 50% 0; }
+.scard.s1 { transform: translateY(var(--slot1)); z-index: 3; }
+.scard.s2 { transform: translateY(var(--slot2)) scale(0.95); z-index: 2; }
+.scard.s3 { transform: scale(0.9); z-index: 1; }
+.scard p { font-size: 15px; line-height: 1.42; text-wrap: pretty; }
+.scard-actions { display: flex; gap: 6px; }
+.scard-actions span { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 10px; border: 1px solid color-mix(in srgb, var(--ink) 28%, transparent); }
+.scard-stamp { position: absolute; right: 16px; bottom: 12px; padding: 4px 10px; border: 2px solid var(--accent); color: var(--accent); font-size: 14px; font-weight: 500; letter-spacing: 0.14em; transform: rotate(-8deg); opacity: 0; }
+.stage-pending { position: absolute; left: 28px; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--ink); color: var(--paper); }
+.stage-pending .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; flex: 0 0 auto; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+.stage-plus { position: absolute; left: 36px; bottom: 54px; z-index: 5; color: var(--accent); font-weight: 500; opacity: 0; }
+.stage-cursor { position: absolute; left: 0; top: 0; width: 22px; height: 22px; z-index: 6; opacity: 0; pointer-events: none; }
+.js-motion:not(.motion-ready) .scard { opacity: 0; }
 .scroll-hint { position: absolute; left: 40px; bottom: 22px; display: flex; align-items: center; gap: 10px; color: var(--ink-soft); }
 .scroll-hint .sh-line { width: 44px; height: 1px; background: var(--ink-soft); transform-origin: left; }
 
@@ -375,12 +412,18 @@ footer { overflow: hidden; }
 
 @media (prefers-reduced-motion: reduce) {
   .flow-track { animation: none; }
+  .stage-pending .pulse { animation: none; }
   .pos-row::before, .nav-links a.mono::after { transition: none; }
 }
 
 @media (max-width: 1100px) {
   .nav-links { gap: 22px; }
   .nav-logo .by { display: none; }
+  .hero-main { gap: 40px; }
+  .stage-win { width: 86%; }
+  .stage-cards { width: 72%; }
+  .stage-code { font-size: 11.5px; }
+  .scard p { font-size: 14px; }
 }
 @media (max-width: 900px) {
   .wrap { padding: 0 20px; }
@@ -388,12 +431,25 @@ footer { overflow: hidden; }
   .nav-links a.mono, .nav-links .nav-cta { display: none; }
   .menu-btn { display: grid; }
   .nav-logo .by { display: inline; }
-  .hero { padding-top: 128px; }
+  .hero { padding-top: 104px; }
+  .hero-main { grid-template-columns: 1fr; gap: 40px; padding-bottom: 56px; }
+  .hero h1 { max-width: 13ch; font-size: clamp(40px, 10.5vw, 72px); }
+  .hero-sub { margin-top: 22px; font-size: 18px; }
+  .hero-copy .hero-actions { margin-top: 28px; }
+  .hero-rot > span:first-child, .rot-sep { display: none; }
+  .stage { max-width: 640px; height: 470px; }
+  .stage-win { width: 100%; }
+  .stage-win::before { transform: translate(10px, 10px); }
+  .stage-cards { top: 170px; width: 88%; }
+  .stage-code { font-size: 12px; }
+  .stage-pr b { font-size: 15px; }
+  .scard p { font-size: 14px; }
+  .stage-pending { left: 12px; }
+  .stage-plus { left: 20px; }
   .hero-meta { flex-direction: column; align-items: flex-start; gap: 6px; }
   .hero-rot { flex-direction: column; align-items: flex-start; gap: 6px; }
-  .rot-sep { display: none; }
   .hero-geo { text-align: left; }
-  .hero-foot, .pos-row, .lim-grid, .contact-grid, .prin, .sec-intro, .proc-floor { grid-template-columns: 1fr; gap: 24px; }
+  .pos-row, .lim-grid, .contact-grid, .prin, .sec-intro, .proc-floor { grid-template-columns: 1fr; gap: 24px; }
   .hero-actions { flex-wrap: wrap; }
   .sec-head { flex-direction: column; gap: 10px; }
   .sec-title { text-align: left; }
@@ -427,6 +483,8 @@ footer { overflow: hidden; }
   .nav-logo .by { display: none; }
   .stat { padding: 24px 18px 28px; }
   .hero-actions .btn { padding: 14px 20px; }
+  .hero-copy .hero-actions { flex-wrap: nowrap; gap: 10px; }
+  .hero-copy .hero-actions .btn { padding: 14px 15px; font-size: 12px; }
 }
 </style>
 </head>
@@ -488,14 +546,60 @@ footer { overflow: hidden; }
         <span class="mono hero-geo" id="heroGeo">Desktop · macOS · Linux · Windows</span>
       </div>
 
-      <h1 id="heroTitle">Not another comment bot. <span class="accent">A coach for the reviewer.</span></h1>
-
-      <div class="hero-foot">
-        <p class="hero-sub" data-hero-reveal>A desktop app that reads a GitHub pull request and hands you a few sharp, question-shaped prompts — grounded in the repo's own conventions. You write the review. It sharpens your judgment.</p>
-        <div class="hero-actions" data-hero-reveal>
-          <span class="magnet"><a class="btn btn-ghost" href="#session">How it works</a></span>
-          <span class="magnet"><a class="btn btn-solid" href="https://consensuslabs.net/#contact">Request access →</a></span>
+      <div class="hero-main">
+        <div class="hero-copy">
+          <h1 id="heroTitle">Not another comment bot. <span class="accent">A coach for the reviewer.</span></h1>
+          <p class="hero-sub" data-hero-reveal>Paste a pull request. Get a few sharp questions about it. You write the review.</p>
+          <div class="hero-actions" data-hero-reveal>
+            <span class="magnet"><a class="btn btn-solid" href="https://consensuslabs.net/#contact">Request access →</a></span>
+            <span class="magnet"><a class="btn btn-ghost" href="#session">How it works</a></span>
+          </div>
         </div>
+
+        <figure class="stage" id="stage" data-hero-reveal aria-label="Illustration: Review Coach deals question cards beside a diff. You keep a card and it goes to your pending review on GitHub.">
+          <div class="stage-win" aria-hidden="true">
+            <div class="stage-bar mono"><span class="app-dots"><i></i><i></i><i></i></span><span>Review Coach</span><span class="stage-ref">owner/repo#128</span></div>
+            <div class="stage-pr"><b>Add account helpers</b><span class="mono">coaching_demo.rs</span></div>
+            <div class="stage-code">
+              <div class="ln hunk"><span></span><span></span><span>@@ +35,5 @@</span></div>
+              <div class="ln add"><span>35</span><span>+</span><span>// Increments the counter by one and returns it.</span></div>
+              <div class="ln add"><span>36</span><span>+</span><span><span class="kw">fn</span> bump(counter: &amp;mut u32) -&gt; u32 {</span></div>
+              <div class="ln add"><span>37</span><span>+</span><span>    *counter += 1;</span></div>
+              <div class="ln add"><span>38</span><span>+</span><span>    *counter</span></div>
+              <div class="ln add"><span>39</span><span>+</span><span>}</span></div>
+              <div class="ln hunk"><span></span><span></span><span>@@ +88,4 @@</span></div>
+              <div class="ln add hot"><span>88</span><span>+</span><span><span class="kw">fn</span> current_balance(account: &amp;mut (f64, u32)) -&gt; f64 {</span></div>
+              <div class="ln add"><span>89</span><span>+</span><span>    account.1 += 1;</span></div>
+              <div class="ln add"><span>90</span><span>+</span><span>    account.0</span></div>
+              <div class="ln add"><span>91</span><span>+</span><span>}</span></div>
+            </div>
+          </div>
+
+          <div class="stage-cards" aria-hidden="true">
+            <article class="scard s1">
+              <div class="app-card-top"><span class="chip strategic">strategic</span><span class="app-card-where">coaching_demo.rs:88</span></div>
+              <p><code>current_balance</code> reads like a getter but changes a counter. Should a query change state?</p>
+              <div class="scard-actions"><span>Accept</span><span>Edit</span><span>Dismiss</span></div>
+              <span class="scard-stamp mono">Kept</span>
+            </article>
+            <article class="scard s2">
+              <div class="app-card-top"><span class="chip clarity">clarity</span><span class="app-card-where">coaching_demo.rs:35</span></div>
+              <p>The comment on <code>bump</code> repeats the code. What could it say that the code can't?</p>
+              <div class="scard-actions"><span>Accept</span><span>Edit</span><span>Dismiss</span></div>
+              <span class="scard-stamp mono">Kept</span>
+            </article>
+            <article class="scard s3">
+              <div class="app-card-top"><span class="chip tactical">tactical</span><span class="app-card-where">coaching_demo.rs:51</span></div>
+              <p><code>process</code> parses, validates and formats in one body. Which step deserves its own name?</p>
+              <div class="scard-actions"><span>Accept</span><span>Edit</span><span>Dismiss</span></div>
+              <span class="scard-stamp mono">Kept</span>
+            </article>
+          </div>
+
+          <div class="stage-pending mono" aria-hidden="true"><span class="pulse"></span>Pending review · only you can see it</div>
+          <span class="stage-plus mono" aria-hidden="true">+1 pending</span>
+          <svg class="stage-cursor" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 2 L3 19 L8 14.5 L11.5 22 L14.5 20.6 L11 13.2 L17.5 13.2 Z" fill="#131210" stroke="#f7f1e3" stroke-width="1.4" stroke-linejoin="round"/></svg>
+        </figure>
       </div>
     </div>
     <div class="scroll-hint mono" data-hero-reveal aria-hidden="true"><span class="sh-line"></span>Scroll</div>
