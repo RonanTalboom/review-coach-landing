@@ -208,31 +208,33 @@
   }
 
   /* RotatingText, by hand: the outgoing phrase leaves upward from its last
-     letter, the next one rises in behind it. */
+     letter, the next one rises in behind it. Every phrase is built once and
+     stacked in the same grid cell (see .rot-word), so the box keeps the
+     widest phrase's size and a swap never re-wraps the hero. */
   function rotate(el, delay) {
     if (!el) return;
     const words = (el.dataset.words || el.textContent).split('|');
-    let i = 0;
-    const render = (w) => {
-      el.textContent = '';
-      return [...w].map((c) => {
+    el.textContent = '';
+    const phrases = words.map((w, k) => {
+      const word = document.createElement('span');
+      word.className = 'rot-word';
+      const chars = [...w].map((c) => {
         const s = document.createElement('span');
         s.className = 'ch';
         s.textContent = c;
-        el.appendChild(s);
+        word.appendChild(s);
         return s;
       });
-    };
-    let chars = render(words[0]);
+      if (k) gsap.set(chars, { yPercent: 120, opacity: 0 });
+      el.appendChild(word);
+      return chars;
+    });
+    let i = 0;
     const tick = () => {
-      gsap.to(chars, {
-        yPercent: -120, opacity: 0, duration: 0.3, ease: 'power2.in', stagger: { each: 0.012, from: 'end' },
-        onComplete: () => {
-          i = (i + 1) % words.length;
-          chars = render(words[i]);
-          gsap.from(chars, { yPercent: 120, opacity: 0, duration: 0.5, ease: 'power3.out', stagger: { each: 0.018, from: 'end' } });
-        },
-      });
+      const out = phrases[i];
+      i = (i + 1) % phrases.length;
+      gsap.to(out, { yPercent: -120, opacity: 0, duration: 0.3, ease: 'power2.in', stagger: { each: 0.012, from: 'end' } });
+      gsap.fromTo(phrases[i], { yPercent: 120, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.5, ease: 'power3.out', stagger: { each: 0.018, from: 'end' }, delay: 0.22 });
     };
     setTimeout(() => setInterval(tick, 2800), delay * 1000);
   }

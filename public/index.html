@@ -134,7 +134,10 @@ html.menu-open .menu-btn .bar { background: var(--paper); }
 .hero .wrap { position: relative; }
 .hero-meta { display: flex; justify-content: space-between; align-items: baseline; gap: 24px; margin-bottom: 36px; color: var(--ink-soft); }
 .hero-rot { display: inline-flex; align-items: baseline; flex-wrap: wrap; }
-.rot-main { display: inline-flex; overflow: hidden; color: var(--accent); white-space: pre; }
+/* All four phrases share one grid cell, so the box is always as wide as the
+   widest one and a rotation can never re-wrap the line. */
+.rot-main { display: inline-grid; overflow: hidden; color: var(--accent); white-space: pre; }
+.rot-word { grid-area: 1 / 1; justify-self: start; }
 .rot-main .ch { display: inline-block; }
 .hero-geo { text-align: right; }
 .hero-geo .enc { color: var(--accent); opacity: 0.75; }
@@ -387,6 +390,8 @@ footer { overflow: hidden; }
   .nav-logo .by { display: inline; }
   .hero { padding-top: 128px; }
   .hero-meta { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .hero-rot { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .rot-sep { display: none; }
   .hero-geo { text-align: left; }
   .hero-foot, .pos-row, .lim-grid, .contact-grid, .prin, .sec-intro, .proc-floor { grid-template-columns: 1fr; gap: 24px; }
   .hero-actions { flex-wrap: wrap; }
@@ -476,7 +481,7 @@ footer { overflow: hidden; }
     <div class="wrap">
       <div class="hero-meta">
         <span class="hero-rot mono">
-          <span>Review Coach —&nbsp;</span>
+          <span>Review Coach</span><span class="rot-sep">&nbsp;—&nbsp;</span>
           <span class="sr-only">Coach, not comment bot</span>
           <span class="rot-main" id="rot" aria-hidden="true" data-words="Coach, not comment bot|The code is the style guide|Tactical vs strategic|Keep your judgment">Coach, not comment bot</span>
         </span>
