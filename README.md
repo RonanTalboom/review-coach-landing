@@ -16,7 +16,7 @@ It uses the **Consensus Labs house style** from [consensuslabs.net](https://cons
 
 ## The first screen
 
-Tagline, one short line, two buttons, and the **hero stage**: an illustrated app window with three question cards that are dealt, kept into the pending review, or dismissed. It runs two cycles, then holds on a dealt frame. With reduced motion or no JS it is a static, finished frame. Everything on the stage is illustration: fixture code, questions written for the page, no numbers. The stage uses different fixture cases from section 01, so the two never repeat.
+Tagline, one short line, two buttons, and the **hero stage**: an illustrated app window with three question cards that are dealt, kept into the pending review, or dismissed. It runs two cycles, then holds on a dealt frame. With reduced motion or no JS it is a static, finished frame. Everything on the stage is illustration: code trimmed from the fixture (a comment that gives the answer away is cut), questions written for the page, no numbers. The stage uses different fixture cases from section 01, so the two never repeat.
 
 Why this shape (from the book library, `/consult-books`): a clear, truthful tagline (Blue Ocean Strategy, ch. 2), buyer words over operational jargon (Blue Ocean Strategy, ch. 2), concrete images over abstract claims (The Sense of Style, ch. 3), and proof over boasts (The Laws of Connection, ch. 8).
 
@@ -64,9 +64,10 @@ It renders the page with motion on and with reduced motion, and checks:
 - **OVERFLOW**, **SETTLED** (nothing left hidden after a full scroll), **CLICK**, **MENU** (phone) and **ERRORS**.
 - **REACH** — when the session track is not pinned (reduced motion, phones) it can still be scrolled sideways.
 - **FOLD** — above 900px (two-column hero) the whole stage, its green plate included, is on screen without scrolling.
+- **IDLE** — with motion on and the hero in view, the stage demo has fully stopped 40 seconds after load, and the front card rests KEPT.
 - **STEADY** — `#session` does not move while the hero phrase rotates (sampled for about 9 seconds).
 
-Each check has been seen to fail: an injected `margin-top: 80px` on the hero fails LANDMARK and DELTA; the old clipped track failed REACH at 1440; the old rotator failed STEADY at 375 (a 19px jump); a 1440×620 viewport fails FOLD.
+Each check has been seen to fail: an injected `margin-top: 80px` on the hero fails LANDMARK and DELTA; the old clipped track failed REACH at 1440; the old rotator failed STEADY at 375 (a 19px jump); a 1440×620 viewport fails FOLD; sharing one GSAP vars object between the loop and the final deal fails IDLE (the loop replayed its tail forever).
 
 ## Deploy
 
