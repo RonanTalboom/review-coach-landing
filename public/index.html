@@ -233,9 +233,14 @@ section[id] { scroll-margin-top: 64px; }
 
 /* ---------- 04 · the session: horizontal pinned track ---------- */
 .stack-sec { position: relative; }
-.hscroll { overflow: hidden; }
+/* Native sideways scroll is the default, so the steps stay reachable with
+   reduced motion or without JS. site.js adds .is-pinned only when it pins. */
+.hscroll { overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scrollbar-width: none; }
+.hscroll::-webkit-scrollbar { display: none; }
+.hscroll:focus-visible { outline-offset: -3px; }
+.hscroll.is-pinned { overflow: hidden; scroll-snap-type: none; }
 .hscroll-track { display: flex; align-items: stretch; gap: 1px; background: var(--rule); padding: 1px 0 0; width: max-content; }
-.hcard { flex: 0 0 clamp(280px, 28vw, 400px); background: var(--paper); padding: 40px 36px 44px; display: flex; flex-direction: column; min-height: max(400px, calc(100vh - 180px)); }
+.hcard { scroll-snap-align: start; flex: 0 0 clamp(280px, 28vw, 400px); background: var(--paper); padding: 40px 36px 44px; display: flex; flex-direction: column; min-height: max(400px, calc(100vh - 180px)); }
 .hcard .hc-tag { color: var(--accent); }
 .hcard .hc-n { font-weight: 900; font-size: clamp(96px, 10vw, 160px); line-height: 0.82; letter-spacing: -0.05em; margin-top: 18px; color: transparent; -webkit-text-stroke: 1.5px color-mix(in srgb, var(--ink) 30%, transparent); user-select: none; transition: -webkit-text-stroke 0.3s; }
 .hcard:hover .hc-n { -webkit-text-stroke: 1.5px var(--accent); }
@@ -632,7 +637,7 @@ footer { overflow: hidden; }
         <h2 class="sec-title" data-split>One pull request, start to finish</h2>
       </div>
     </div>
-    <div class="hscroll" id="hscroll">
+    <div class="hscroll" id="hscroll" tabindex="0" role="region" aria-label="The seven steps of a review. Scroll sideways.">
       <div class="hscroll-track" id="hscrollTrack">
         <article class="hcard">
           <span class="hc-tag mono">Fetch</span>

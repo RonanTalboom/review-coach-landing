@@ -43,6 +43,7 @@
   navProgress();
   setupSpotlight();
   setupScrollSpy();
+  nativeRail();
   $$('details').forEach((d) => d.addEventListener('toggle', () => ScrollTrigger.refresh()));
 
   if (reduced) {
@@ -313,6 +314,9 @@
     if (!section || !viewport || !track) return;
     if (matchMedia('(max-width: 900px)').matches) return; // native swipe below the breakpoint
 
+    viewport.classList.add('is-pinned');
+    viewport.scrollLeft = 0;
+    viewport.removeAttribute('tabindex'); // scroll drives it now; nothing to focus
     const overflow = () => Math.max(0, track.scrollWidth - viewport.clientWidth);
     const tween = gsap.to(track, {
       x: () => -overflow(),
@@ -337,6 +341,19 @@
         scrollTrigger: { trigger: card, containerAnimation: tween, start: 'left 96%', end: 'left 62%', scrub: true },
       });
     });
+  }
+
+  /* Unpinned (reduced motion, phones), the track scrolls natively; the rail
+     under it then follows scrollLeft instead of the pin's progress. */
+  function nativeRail() {
+    const viewport = $('#hscroll');
+    const bar = $('#hscrollBar');
+    if (!viewport || !bar) return;
+    viewport.addEventListener('scroll', () => {
+      if (viewport.classList.contains('is-pinned')) return;
+      const max = viewport.scrollWidth - viewport.clientWidth;
+      bar.style.transform = `scaleX(${max > 0 ? viewport.scrollLeft / max : 0})`;
+    }, { passive: true });
   }
 
   /* SpotlightCard: a soft green light follows the pointer inside each cell. */
