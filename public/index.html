@@ -437,15 +437,15 @@ footer { overflow: hidden; }
   .hero-sub { margin-top: 22px; font-size: 18px; }
   .hero-copy .hero-actions { margin-top: 28px; }
   .hero-rot > span:first-child, .rot-sep { display: none; }
-  .stage { max-width: 640px; height: 470px; }
+  .stage { max-width: 640px; height: 490px; }
   .stage-win { width: 100%; }
   .stage-win::before { transform: translate(10px, 10px); }
-  .stage-cards { top: 170px; width: 88%; }
+  .stage-cards { top: 160px; width: 88%; }
   .stage-code { font-size: 12px; }
   .stage-pr b { font-size: 15px; }
   .scard p { font-size: 14px; }
   .stage-pending { left: 12px; }
-  .stage-plus { left: 20px; }
+  .stage-plus { left: auto; right: 16px; bottom: 14px; }
   .hero-meta { flex-direction: column; align-items: flex-start; gap: 6px; }
   .hero-rot { flex-direction: column; align-items: flex-start; gap: 6px; }
   .hero-geo { text-align: left; }
@@ -484,6 +484,7 @@ footer { overflow: hidden; }
   .stat { padding: 24px 18px 28px; }
   .hero-actions .btn { padding: 14px 20px; }
   .hero-copy .hero-actions { flex-wrap: nowrap; gap: 10px; }
+  .chip-more { display: none; }
   .hero-copy .hero-actions .btn { padding: 14px 15px; font-size: 12px; }
 }
 </style>
@@ -596,7 +597,7 @@ footer { overflow: hidden; }
             </article>
           </div>
 
-          <div class="stage-pending mono" aria-hidden="true"><span class="pulse"></span>Pending review · only you can see it</div>
+          <div class="stage-pending mono" aria-hidden="true"><span class="pulse"></span>Pending review<span class="chip-more">&nbsp;· only you can see it</span></div>
           <span class="stage-plus mono" aria-hidden="true">+1 pending</span>
           <svg class="stage-cursor" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 2 L3 19 L8 14.5 L11.5 22 L14.5 20.6 L11 13.2 L17.5 13.2 Z" fill="#131210" stroke="#f7f1e3" stroke-width="1.4" stroke-linejoin="round"/></svg>
         </figure>
